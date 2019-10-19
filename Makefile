@@ -41,7 +41,15 @@ else ifneq ($(findstring MINGW,$(shell uname -a)),)
 endif
 
 CORE_DIR    += .
+ifeq ($(basegame),xatrix)
+TARGET_NAME := vitaquake2-xatrix
+else ifeq ($(basegame),rogue)
+TARGET_NAME := vitaquake2-rogue
+else ifeq ($(basegame),zaero)
+TARGET_NAME := vitaquake2-zaero
+else
 TARGET_NAME := vitaquake2
+endif
 LIBM		    = -lm
 
 ifeq ($(ARCHFLAGS),)
@@ -132,11 +140,19 @@ include Makefile.common
 
 OBJECTS := $(SOURCES_C:.c=.o)
 
-CFLAGS   += -Wall -D__LIBRETRO__ $(fpic) -DREF_HARD_LINKED -DRELEASE -DGAME_HARD_LINKED -DOSTYPE=\"$(OSTYPE)\" -DARCH=\"$(ARCH)\"
+CFLAGS   += -Wall -D__LIBRETRO__ $(fpic) -DREF_HARD_LINKED -DRELEASE -DGAME_HARD_LINKED -DOSTYPE=\"$(OSTYPE)\" -DARCH=\"$(ARCH)\" -fsigned-char
 CXXFLAGS += -Wall -D__LIBRETRO__ $(fpic) -fpermissive
 
 ifeq ($(HAVE_OPENGL),1)
 CFLAGS   += -DHAVE_OPENGL
+endif
+
+ifeq ($(basegame),xatrix)
+CFLAGS   += -DXATRIX
+else ifeq ($(basegame),rogue)
+CFLAGS   += -DROGUE
+else ifeq ($(basegame),zaero)
+CFLAGS   += -DZAERO
 endif
 
 ifeq ($(platform), unix)

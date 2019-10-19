@@ -1706,7 +1706,20 @@ void retro_run(void)
 		const char *empty_string = "";
 	
 		argv[0] = empty_string;
-		Qcommon_Init(1, (char**)argv);
+		int argc = 1;
+#if defined(ROGUE) || defined(XATRIX) || defined(ZAERO)
+		argc = 4;
+		argv[1] = "+set";
+		argv[2] = "game";
+#ifdef ROGUE
+		argv[3] = "rogue";
+#elif defined(XATRIX)
+		argv[3] = "xatrix";
+#elif defined(ZAERO)
+		argv[3] = "zaero";
+#endif
+#endif
+		Qcommon_Init(argc, (char**)argv);
 		if (is_soft_render) Cvar_Set( "vid_ref", "soft" );
 		update_variables(false);
 		first_boot = false;
