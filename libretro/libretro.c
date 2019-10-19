@@ -1337,7 +1337,7 @@ static void update_variables(bool startup)
 			if (strcmp(var.value, "enabled") == 0)
 				Cvar_SetValue( "sw_texfilt", 1 );
 			else
-				Cvar_SetValue( "sw_texfilt", 1 );
+				Cvar_SetValue( "sw_texfilt", 0);
 		}
 #ifdef HAVE_OPENGL	
 		var.key = "vitaquakeii_specular";

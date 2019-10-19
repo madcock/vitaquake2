@@ -576,7 +576,7 @@ void D_DrawSpans16_Dither (espan_t *pspan) //qbism up it from 8 to 16. This + un
    float sdivzstepu, tdivzstepu, zistepu;
 
    // mipmaps shouldn't be dithered
-   if (pcurrentcache->mipscale < 1.0f)
+   if (pcurrentcache->mipscale < 1.0f || sw_texfilt->value == 0)
    {
       D_DrawSpans16(pspan);
       return;
