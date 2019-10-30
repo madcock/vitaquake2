@@ -269,7 +269,7 @@ void GLimp_EndFrame (void)
 qboolean GLimp_InitGL (void)
 {
     int i;
-	indices = (uint16_t*)malloc(sizeof(uint16_t*)*MAX_INDICES);
+	indices = (uint16_t*)malloc(sizeof(uint16_t)*MAX_INDICES);
 	for (i=0;i<MAX_INDICES;i++){
 		indices[i] = i;
 	}
