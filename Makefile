@@ -119,11 +119,25 @@ else ifeq ($(platform), vita)
    CFLAGS += -DVITA
    CXXFLAGS += -Wl,-q -Wall -O3
 	STATIC_LINKING = 1
+else ifeq ($(platform), libnx)
+    include $(DEVKITPRO)/libnx/switch_rules
+    EXT=a
+    TARGET := $(TARGET_NAME)_libretro_$(platform).$(EXT)
+    DEFINES := -DSWITCH=1 -U__linux__ -U__linux -DRARCH_INTERNAL
+    CFLAGS	:=	 $(DEFINES) -g -O3 \
+                 -fPIE -I$(LIBNX)/include/ -ffunction-sections -fdata-sections -ftls-model=local-exec -Wl,--allow-multiple-definition -specs=$(LIBNX)/switch.specs
+    CFLAGS += $(INCDIRS) -I$(PORTLIBS)/include/
+    CFLAGS	+=	-D__SWITCH__ -DHAVE_LIBNX -march=armv8-a -mtune=cortex-a57 -mtp=soft
+    CXXFLAGS := $(ASFLAGS) $(CFLAGS) -fno-rtti -std=gnu++11
+    CFLAGS += -std=gnu11
+    STATIC_LINKING = 1
+    HAVE_OPENGL = 1
 else
    CC = gcc
    TARGET := $(TARGET_NAME)_libretro.dll
-	HAVE_OPENGL = 1
+   HAVE_OPENGL = 1
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
+   LDFLAGS += -lopengl32
 endif
 
 LDFLAGS += $(LIBM)

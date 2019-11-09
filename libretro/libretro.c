@@ -37,19 +37,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifdef HAVE_OPENGL
 #include "../ref_gl/gl_local.h"
 
-#if defined(HAVE_PSGL)
-#define RARCH_GL_FRAMEBUFFER GL_FRAMEBUFFER_OES
-#define RARCH_GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_OES
-#define RARCH_GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0_EXT
-#elif defined(OSX_PPC)
-#define RARCH_GL_FRAMEBUFFER GL_FRAMEBUFFER_EXT
-#define RARCH_GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE_EXT
-#define RARCH_GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0_EXT
-#else
-#define RARCH_GL_FRAMEBUFFER GL_FRAMEBUFFER
-#define RARCH_GL_FRAMEBUFFER_COMPLETE GL_FRAMEBUFFER_COMPLETE
-#define RARCH_GL_COLOR_ATTACHMENT0 GL_COLOR_ATTACHMENT0
-#endif
+#include <glsm/glsm.h>
 #endif
 
 qboolean gl_set = false;
@@ -129,7 +117,7 @@ api_entry funcs[GL_FUNCS_NUM];
 char g_rom_dir[1024], g_pak_path[1024], g_save_dir[1024];
 
 #ifdef HAVE_OPENGL
-static struct retro_hw_render_callback hw_render;
+extern struct retro_hw_render_callback hw_render;
 
 #define MAX_INDICES 4096
 uint16_t* indices;
@@ -294,6 +282,11 @@ static void context_reset(void)
 	if (!context_needs_reinit)
 		return;
 #ifdef HAVE_OPENGL
+	glsm_ctl(GLSM_CTL_STATE_CONTEXT_RESET, NULL);
+	
+	if (!glsm_ctl(GLSM_CTL_STATE_SETUP, NULL))
+		return;
+	
 	if (!is_soft_render) {
 		initialize_gl();
 		if (!first_reset)
@@ -303,6 +296,41 @@ static void context_reset(void)
 #endif
 	context_needs_reinit = false;
 }
+
+#ifdef HAVE_OPENGL
+static bool context_framebuffer_lock(void *data)
+{
+    return false;
+}
+
+bool initialize_opengl(void)
+{
+   glsm_ctx_params_t params = {0};
+
+   params.context_type     = RETRO_HW_CONTEXT_OPENGL;
+   params.context_reset    = context_reset;
+   params.context_destroy  = context_destroy;
+   params.environ_cb       = environ_cb;
+   params.stencil          = true;
+   params.framebuffer_lock = context_framebuffer_lock;
+
+   if (!glsm_ctl(GLSM_CTL_STATE_CONTEXT_INIT, &params))
+   {
+      log_cb(RETRO_LOG_ERROR, "Could not setup glsm.\n");
+      return false;
+   }
+
+   return true;
+}
+
+void destroy_opengl(void)
+{
+   if (!glsm_ctl(GLSM_CTL_STATE_CONTEXT_DESTROY, NULL))
+   {
+      log_cb(RETRO_LOG_ERROR, "Could not destroy glsm context.\n");
+   }
+}
+#endif
 
 typedef struct {
    struct retro_input_descriptor desc[GP_MAXBINDS];
@@ -1580,7 +1608,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 bool retro_load_game(const struct retro_game_info *info)
 {
 	int i;
-	char *path_lower;
+	char path_lower[256];
 #if defined(_WIN32)
 	char slash = '\\';
 #else
@@ -1600,14 +1628,7 @@ bool retro_load_game(const struct retro_game_info *info)
 		return false;
 	}
 
-	hw_render.context_type       = RETRO_HW_CONTEXT_OPENGL;
-	hw_render.context_reset      = context_reset;
-	hw_render.context_destroy    = context_destroy;
-	hw_render.bottom_left_origin = true;
-	hw_render.depth              = true;
-	hw_render.stencil            = true;
-
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_HW_RENDER, &hw_render))
+	if (!initialize_opengl())
 #endif
 	{
 		if (log_cb)
@@ -1627,7 +1648,7 @@ bool retro_load_game(const struct retro_game_info *info)
 	if (!info)
 		return false;
 	
-	path_lower = strdup(info->path);
+	sprintf(path_lower, "%s", info->path);
 	
 	for (i=0; path_lower[i]; ++i)
 		path_lower[i] = tolower(path_lower[i]);
@@ -1696,6 +1717,7 @@ void retro_run(void)
 	bool updated = false;
 #ifdef HAVE_OPENGL
 	if (!is_soft_render) {
+		glsm_ctl(GLSM_CTL_STATE_BIND, NULL);
 		qglBindFramebuffer(RARCH_GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
 		qglEnable(GL_TEXTURE_2D);
 	}
@@ -1739,7 +1761,12 @@ void retro_run(void)
 		return;
 
 	if (is_soft_render) video_cb(tex_buffer, scr_width, scr_height, scr_width << 1);
-	else video_cb(RETRO_HW_FRAME_BUFFER_VALID, scr_width, scr_height, 0);
+	else {
+#ifdef HAVE_OPENGL
+		glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
+		video_cb(RETRO_HW_FRAME_BUFFER_VALID, scr_width, scr_height, 0);
+#endif
+	}
 	
 	audio_process();
 	audio_callback();

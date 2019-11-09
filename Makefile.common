@@ -21,7 +21,10 @@ SYSTEM = 	$(CORE_DIR)/libretro/libretro.c \
 				$(LIBRETRO_COMM_DIR)/compat/compat_snprintf.c \
 				$(LIBRETRO_COMM_DIR)/features/features_cpu.c \
 				$(LIBRETRO_COMM_DIR)/streams/file_stream.c \
-				$(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
+				$(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c \
+				$(LIBRETRO_COMM_DIR)/glsym/rglgen.c \
+				$(LIBRETRO_COMM_DIR)/glsym/glsym_gl.c \
+				$(LIBRETRO_COMM_DIR)/glsm/glsm.c
 
 CLIENT =		client/cl_input.c \
 				client/cl_inv.c \
