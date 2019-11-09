@@ -49,6 +49,7 @@ void *tex_buffer = NULL;
 
 #ifdef HAVE_OPENGL
 extern cvar_t *gl_shadows;
+static bool libretro_shared_context = false;
 #endif
 extern cvar_t *sw_texfilt;
 
@@ -283,9 +284,10 @@ static void context_reset(void)
 		return;
 #ifdef HAVE_OPENGL
 	glsm_ctl(GLSM_CTL_STATE_CONTEXT_RESET, NULL);
-	
-	if (!glsm_ctl(GLSM_CTL_STATE_SETUP, NULL))
-		return;
+
+   if (!libretro_shared_context)
+      if (!glsm_ctl(GLSM_CTL_STATE_SETUP, NULL))
+         return;
 	
 	if (!is_soft_render) {
 		initialize_gl();
@@ -320,6 +322,11 @@ bool initialize_opengl(void)
       return false;
    }
 
+   if (environ_cb(RETRO_ENVIRONMENT_SET_HW_SHARED_CONTEXT, NULL))
+      libretro_shared_context = true;
+   else
+      libretro_shared_context = false;
+
    return true;
 }
 
@@ -329,6 +336,8 @@ void destroy_opengl(void)
    {
       log_cb(RETRO_LOG_ERROR, "Could not destroy glsm context.\n");
    }
+
+   libretro_shared_context = false;
 }
 #endif
 
@@ -1717,7 +1726,8 @@ void retro_run(void)
 	bool updated = false;
 #ifdef HAVE_OPENGL
 	if (!is_soft_render) {
-		glsm_ctl(GLSM_CTL_STATE_BIND, NULL);
+      if (!libretro_shared_context)
+         glsm_ctl(GLSM_CTL_STATE_BIND, NULL);
 		qglBindFramebuffer(RARCH_GL_FRAMEBUFFER, hw_render.get_current_framebuffer());
 		qglEnable(GL_TEXTURE_2D);
 	}
@@ -1763,7 +1773,8 @@ void retro_run(void)
 	if (is_soft_render) video_cb(tex_buffer, scr_width, scr_height, scr_width << 1);
 	else {
 #ifdef HAVE_OPENGL
-		glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
+      if (!libretro_shared_context)
+         glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
 		video_cb(RETRO_HW_FRAME_BUFFER_VALID, scr_width, scr_height, 0);
 #endif
 	}
