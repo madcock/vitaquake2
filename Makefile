@@ -1,7 +1,6 @@
 STATIC_LINKING := 0
 AR             := ar
 HAVE_OPENGL    := 0
-LIBGL          := 
 
 ifneq ($(V),1)
    Q := @
@@ -77,16 +76,20 @@ ifeq ($(platform), unix)
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
    fpic := -fPIC
    HAVE_OPENGL = 1
-   LIBGL = -lGL
+	GL_LIB := -lGL
    SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
 else ifeq ($(platform), linux-portable)
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
    fpic := -fPIC -nostdlib
+	HAVE_OPENGL = 1
+	GL_LIB := -lGL
    SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T
 	LIBM :=
 else ifneq (,$(findstring osx,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
+	HAVE_OPENGL = 1
+   GL_LIB := -framework OpenGL
    SHARED := -dynamiclib
 else ifneq (,$(findstring ios,$(platform)))
    TARGET := $(TARGET_NAME)_libretro_ios.dylib
@@ -139,14 +142,10 @@ else
    TARGET := $(TARGET_NAME)_libretro.dll
    HAVE_OPENGL = 1
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
-   LIBGL = -lopengl32
+   GL_LIB = -lopengl32
 endif
 
 LDFLAGS += $(LIBM)
-
-ifeq ($(HAVE_OPENGL),1)
-LDFLAGS += $(LIBGL)
-endif
 
 ifeq ($(DEBUG), 1)
    CFLAGS += -O0 -g -DDEBUG
@@ -190,7 +189,7 @@ ifeq ($(STATIC_LINKING), 1)
 	$(AR) rcs $@ $(OBJECTS)
 else
 	@$(if $(Q), $(shell echo echo LD $@),)
-	$(Q)$(CC) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) $(LDFLAGS)
+	$(Q)$(CC) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) $(LDFLAGS) $(GL_LIB)
 endif
 
 %.o: %.c
