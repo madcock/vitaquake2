@@ -1317,6 +1317,10 @@ static void update_variables(bool startup)
          case 244:
             framerate_ms = 4;
             break;
+         case 300:
+         case 360:
+            framerate_ms = 3;
+            break;
       }
 
       var.key = "vitaquakeii_resolution";
