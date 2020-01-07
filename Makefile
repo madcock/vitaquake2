@@ -88,8 +88,8 @@ else ifeq ($(platform), linux-portable)
 else ifneq (,$(findstring osx,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
-	HAVE_OPENGL = 1
-   GL_LIB := -framework OpenGL
+   #HAVE_OPENGL = 1
+   #GL_LIB := -framework OpenGL
    SHARED := -dynamiclib
 else ifneq (,$(findstring ios,$(platform)))
    TARGET := $(TARGET_NAME)_libretro_ios.dylib

@@ -21,10 +21,7 @@ SYSTEM = 	$(CORE_DIR)/libretro/libretro.c \
 				$(LIBRETRO_COMM_DIR)/compat/compat_snprintf.c \
 				$(LIBRETRO_COMM_DIR)/features/features_cpu.c \
 				$(LIBRETRO_COMM_DIR)/streams/file_stream.c \
-				$(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c \
-				$(LIBRETRO_COMM_DIR)/glsym/rglgen.c \
-				$(LIBRETRO_COMM_DIR)/glsym/glsym_gl.c \
-				$(LIBRETRO_COMM_DIR)/glsm/glsm.c
+				$(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c 
 
 CLIENT =		client/cl_input.c \
 				client/cl_inv.c \
@@ -167,8 +164,13 @@ ZAERO_DIRS = zaero zaero/zaero zaero/shared zaero/savegame zaero/player zaero/mo
 ZAERO := $(foreach dir,$(ZAERO_DIRS), $(wildcard $(dir)/*.c))
 
 SOURCES_C   += $(CLIENT) $(QCOMMON) $(SERVER) $(SYSTEM) $(REFSOFT) $(REFCOMMON)
+
 ifeq ($(HAVE_OPENGL),1)
 SOURCES_C   += $(REFGL)
+SOURCES_C   += \
+          $(LIBRETRO_COMM_DIR)/glsym/rglgen.c \
+          $(LIBRETRO_COMM_DIR)/glsym/glsym_gl.c \
+          $(LIBRETRO_COMM_DIR)/glsm/glsm.c
 endif
 
 ifeq ($(basegame),xatrix)
