@@ -476,9 +476,7 @@ netadr_t	net_local_adr;
 
 extern uint64_t rumble_tick;
 int scr_width = 960, scr_height = 544;
-#ifdef HAVE_OPENGL
 void *GetGameAPI (void *import);
-#endif
 qboolean	NET_CompareAdr (netadr_t a, netadr_t b)
 {
 	if (a.ip[0] == b.ip[0] && a.ip[1] == b.ip[1] && a.ip[2] == b.ip[2] && a.ip[3] == b.ip[3] && a.port == b.port)
