@@ -693,11 +693,14 @@ void Sys_Error (char *error, ...)
 	va_start (argptr,error);
 	vsnprintf (str,512, error, argptr);
 	va_end (argptr);
-	LOG_FILE(str);
+	LOG_FILE("Sys_Error: %s", str);
+	Sys_Quit();
 }
 
 void Sys_Quit (void)
 {
+	LOG_FILE("Sys_Quit called");
+	environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 }
 
 void Sys_UnloadGame (void)
