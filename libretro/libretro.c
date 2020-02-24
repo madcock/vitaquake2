@@ -979,12 +979,27 @@ void *Hunk_Alloc (int size)
 
 int Hunk_End (void)
 {
+	// Following code attempts to shrink allocation but
+	// can't handle the case when realloc decides to allocate a new smaller
+	// chunk. Bionic on Android always allocates new chunk. So
+	// tolerate some memory inefficiency but at least it works.
+	//
+	// This code depends on an implementation detail
+	// of realloc and is essentially wrong but it's currently
+	// impractical to fix due to other coede keeping a lot
+	// of pointers to parts of allocated chunk.
+	//
+	// One way of fixing is to allocate memory for several hunks at
+	// once and continuing storing next hunk where the last one left
+	// off but just skipping it is good enough for now. 
+#ifndef __ANDROID__
 	byte *n;
 
 	n = realloc(membase, cursize);
 
 	if (n != membase)
 		Sys_Error("Hunk_End:  Could not remap virtual block (%d)", errno);
+#endif
 
 	return cursize;
 }
