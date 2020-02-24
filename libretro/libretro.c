@@ -476,9 +476,7 @@ netadr_t	net_local_adr;
 
 extern uint64_t rumble_tick;
 int scr_width = 960, scr_height = 544;
-#ifdef HAVE_OPENGL
 void *GetGameAPI (void *import);
-#endif
 qboolean	NET_CompareAdr (netadr_t a, netadr_t b)
 {
 	if (a.ip[0] == b.ip[0] && a.ip[1] == b.ip[1] && a.ip[2] == b.ip[2] && a.ip[3] == b.ip[3] && a.port == b.port)
@@ -675,31 +673,16 @@ static void extract_directory(char *buf, const char *path, size_t size)
 
 int y = 20;
 void LOG_FILE(const char *format, ...){
-	#ifndef RELEASE
-	__gnuc_va_list arg;
+        va_list arg;
 	int done;
 	va_start(arg, format);
 	char msg[512];
-	done = vsprintf(msg, format, arg);
+	done = vsnprintf(msg, 500, format, arg);
 	va_end(arg);
-	int i;
-	sprintf(msg, "%s\n", msg);
-	FILE* log = fopen("ux0:/data/quake2/quake.log", "a+");
-	if (log != NULL) {
-		fwrite(msg, 1, strlen(msg), log);
-		fclose(log);
-	}
-	#endif
-	#ifdef DEBUG
-	__gnuc_va_list arg;
-	int done;
-	va_start(arg, format);
-	char msg[512];
-	done = vsprintf(msg, format, arg);
-	va_end(arg);
-	int i;
-	printf("LOG2FILE: %s\n", msg);
-	#endif
+	if (log_cb)
+		log_cb(RETRO_LOG_INFO, "LOG2FILE: %s", msg);
+	else
+		fprintf(stderr, "LOG2FILE: %s\n", msg);
 }
 
 void Sys_Error (char *error, ...)
@@ -710,11 +693,14 @@ void Sys_Error (char *error, ...)
 	va_start (argptr,error);
 	vsnprintf (str,512, error, argptr);
 	va_end (argptr);
-	LOG_FILE(str);
+	LOG_FILE("Sys_Error: %s", str);
+	Sys_Quit();
 }
 
 void Sys_Quit (void)
 {
+	LOG_FILE("Sys_Quit called");
+	environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 }
 
 void Sys_UnloadGame (void)
@@ -993,12 +979,27 @@ void *Hunk_Alloc (int size)
 
 int Hunk_End (void)
 {
+	// Following code attempts to shrink allocation but
+	// can't handle the case when realloc decides to allocate a new smaller
+	// chunk. Bionic on Android always allocates new chunk. So
+	// tolerate some memory inefficiency but at least it works.
+	//
+	// This code depends on an implementation detail
+	// of realloc and is essentially wrong but it's currently
+	// impractical to fix due to other coede keeping a lot
+	// of pointers to parts of allocated chunk.
+	//
+	// One way of fixing is to allocate memory for several hunks at
+	// once and continuing storing next hunk where the last one left
+	// off but just skipping it is good enough for now. 
+#ifndef __ANDROID__
 	byte *n;
 
 	n = realloc(membase, cursize);
 
 	if (n != membase)
 		Sys_Error("Hunk_End:  Could not remap virtual block (%d)", errno);
+#endif
 
 	return cursize;
 }
@@ -1186,7 +1187,7 @@ char *Sys_FindFirst (char *path, unsigned musthave, unsigned canhave)
 {
 	char *p;
 
-	if (fdir >= 0)
+	if (fdir != NULL)
 		Sys_Error ("Sys_BeginFind without close");
 
 	COM_FilePath (path, findbase);
@@ -1218,7 +1219,7 @@ char *Sys_FindFirst (char *path, unsigned musthave, unsigned canhave)
 
 char *Sys_FindNext (unsigned musthave, unsigned canhave)
 {
-	if (fdir < 0)
+	if (fdir == NULL)
 		return NULL;
 	while ((retro_readdir(fdir)) > 0)
    {
@@ -1233,7 +1234,7 @@ char *Sys_FindNext (unsigned musthave, unsigned canhave)
 
 void Sys_FindClose (void)
 {
-	if (fdir >= 0)
+	if (fdir != NULL)
 		retro_closedir(fdir);
 		
 	fdir = NULL;
@@ -1445,13 +1446,6 @@ static void update_variables(bool startup)
 
 void retro_init(void)
 {
-   struct retro_log_callback log;
-
-   if(environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
-      log_cb = log.log;
-   else
-      log_cb = NULL;
-
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
 }
@@ -1570,6 +1564,13 @@ void retro_set_environment(retro_environment_t cb)
 
    libretro_set_core_options(environ_cb);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
+
+   struct retro_log_callback log;
+
+   if(environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
+      log_cb = log.log;
+   else
+      log_cb = NULL;
 }
 
 void retro_reset(void)
