@@ -1187,7 +1187,7 @@ char *Sys_FindFirst (char *path, unsigned musthave, unsigned canhave)
 {
 	char *p;
 
-	if (fdir >= 0)
+	if (fdir != NULL)
 		Sys_Error ("Sys_BeginFind without close");
 
 	COM_FilePath (path, findbase);
@@ -1219,7 +1219,7 @@ char *Sys_FindFirst (char *path, unsigned musthave, unsigned canhave)
 
 char *Sys_FindNext (unsigned musthave, unsigned canhave)
 {
-	if (fdir < 0)
+	if (fdir == NULL)
 		return NULL;
 	while ((retro_readdir(fdir)) > 0)
    {
@@ -1234,7 +1234,7 @@ char *Sys_FindNext (unsigned musthave, unsigned canhave)
 
 void Sys_FindClose (void)
 {
-	if (fdir >= 0)
+	if (fdir != NULL)
 		retro_closedir(fdir);
 		
 	fdir = NULL;
