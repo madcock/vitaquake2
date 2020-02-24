@@ -675,31 +675,16 @@ static void extract_directory(char *buf, const char *path, size_t size)
 
 int y = 20;
 void LOG_FILE(const char *format, ...){
-	#ifndef RELEASE
-	__gnuc_va_list arg;
+        va_list arg;
 	int done;
 	va_start(arg, format);
 	char msg[512];
-	done = vsprintf(msg, format, arg);
+	done = vsnprintf(msg, 500, format, arg);
 	va_end(arg);
-	int i;
-	sprintf(msg, "%s\n", msg);
-	FILE* log = fopen("ux0:/data/quake2/quake.log", "a+");
-	if (log != NULL) {
-		fwrite(msg, 1, strlen(msg), log);
-		fclose(log);
-	}
-	#endif
-	#ifdef DEBUG
-	__gnuc_va_list arg;
-	int done;
-	va_start(arg, format);
-	char msg[512];
-	done = vsprintf(msg, format, arg);
-	va_end(arg);
-	int i;
-	printf("LOG2FILE: %s\n", msg);
-	#endif
+	if (log_cb)
+		log_cb(RETRO_LOG_INFO, "LOG2FILE: %s", msg);
+	else
+		fprintf(stderr, "LOG2FILE: %s\n", msg);
 }
 
 void Sys_Error (char *error, ...)
@@ -1445,13 +1430,6 @@ static void update_variables(bool startup)
 
 void retro_init(void)
 {
-   struct retro_log_callback log;
-
-   if(environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
-      log_cb = log.log;
-   else
-      log_cb = NULL;
-
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
 }
@@ -1570,6 +1548,13 @@ void retro_set_environment(retro_environment_t cb)
 
    libretro_set_core_options(environ_cb);
    cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
+
+   struct retro_log_callback log;
+
+   if(environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
+      log_cb = log.log;
+   else
+      log_cb = NULL;
 }
 
 void retro_reset(void)
