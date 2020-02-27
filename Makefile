@@ -7,7 +7,7 @@ ifneq ($(V),1)
 endif
 
 ifneq ($(SANITIZER),)
-   CFLAGS   := -fsanitize=$(SANITIZER) $(CFLAGS)
+   CFLAGS   := -fsanitize=$(SANITIZER) $(CFLAGS) 
    CXXFLAGS := -fsanitize=$(SANITIZER) $(CXXFLAGS)
    LDFLAGS  := -fsanitize=$(SANITIZER) $(LDFLAGS)
 endif
