@@ -152,6 +152,19 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       "disabled"
    },
+#ifdef HAVE_OPENGL
+   {
+      "vitaquakeii_renderer",
+      "Renderer (restart)",
+      "Choose whether to use software renderer or OpenGL.",
+      {
+         { "opengl",    "OpenGL" },
+	 { "software",  "Software" },
+         { NULL, NULL },
+      },
+      "opengl"
+   },
+#endif
    {
       "vitaquakeii_hand",
       "Weapon Position",

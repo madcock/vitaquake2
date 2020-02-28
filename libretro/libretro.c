@@ -50,6 +50,9 @@ void *tex_buffer = NULL;
 #ifdef HAVE_OPENGL
 extern cvar_t *gl_shadows;
 static bool libretro_shared_context = false;
+static bool enable_opengl = true;
+#else
+static const bool enable_opengl = false;
 #endif
 extern cvar_t *sw_texfilt;
 
@@ -1349,6 +1352,13 @@ static void update_variables(bool startup)
 
          initial_resolution_set = true;
       }
+
+#ifdef HAVE_OPENGL
+      var.key = "vitaquakeii_renderer";
+      var.value = NULL;
+
+      enable_opengl = !environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) || strcmp(var.value, "software") != 0;
+#endif
    }
    
 	var.key = "vitaquakeii_invert_y_axis";
@@ -1638,19 +1648,24 @@ bool retro_load_game(const struct retro_game_info *info)
 	struct retro_keyboard_callback cb = { keyboard_cb };
 #endif
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
-#ifdef HAVE_OPENGL
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
+
+	update_variables(true);
+
+	if (enable_opengl && !environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
 	{
 		if (log_cb)
 			log_cb(RETRO_LOG_INFO, "XRGB8888 is not supported.\n");
 		return false;
 	}
 
-	if (!initialize_opengl())
+	if (!enable_opengl
+#ifdef HAVE_OPENGL
+	    || !initialize_opengl()
 #endif
+	    )
 	{
 		if (log_cb)
-			log_cb(RETRO_LOG_ERROR, "vitaQuakeII: libretro frontend doesn't have OpenGL support, falling back to software renderer.\n");
+			log_cb(RETRO_LOG_INFO, "vitaQuakeII: using software renderer.\n");
 		
 		fmt = RETRO_PIXEL_FORMAT_RGB565;
 		if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
@@ -1660,6 +1675,9 @@ bool retro_load_game(const struct retro_game_info *info)
 			return false;
 		}
 		is_soft_render = true;
+	} else {
+		if (log_cb)
+			log_cb(RETRO_LOG_INFO, "vitaQuakeII: using OpenGL renderer.\n");
 	}
 	
 
@@ -1675,8 +1693,6 @@ bool retro_load_game(const struct retro_game_info *info)
    environ_cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, &cb);
 #endif
 	
-	update_variables(true);
-
 	extract_directory(g_rom_dir, info->path, sizeof(g_rom_dir));
 	
 	snprintf(g_pak_path, sizeof(g_pak_path), "%s", info->path);
@@ -2102,12 +2118,12 @@ static void ApplyChanges( void *unused )
 
    Cvar_SetValue( "vid_gamma", gamma );
    /*Cvar_SetValue( "gl_mode", s_mode_list.curvalue ); */
-#ifdef HAVE_OPENGL
-   Cvar_SetValue( "gl_picmip", 3 - s_tq_slider.curvalue );
+   if (enable_opengl) {
+     Cvar_SetValue( "gl_picmip", 3 - s_tq_slider.curvalue );
 
-   Cvar_Set( "vid_ref", "gl" );
-   Cvar_Set( "gl_driver", "opengl32" );
-#endif
+     Cvar_Set( "vid_ref", "gl" );
+     Cvar_Set( "gl_driver", "opengl32" );
+   }
    M_ForceMenuOff();
 }
 
