@@ -49,8 +49,9 @@ void D_WarpScreen (void)
 	byte	**row;
 
 	static int	cached_width, cached_height;
-	static byte	*rowptr[1200+AMP2*2];
-	static int	column[1600+AMP2*2];
+	static int	allocated_width = -1, allocated_height = -1;
+	static byte	**rowptr;
+	static int	*column;
 
 	//
 	// these are constant over resolutions, and can be saved
@@ -59,6 +60,16 @@ void D_WarpScreen (void)
 	h = r_newrefdef.height;
 	if (w != cached_width || h != cached_height)
 	{
+		if (w > allocated_width) {
+			free (column);
+			column = malloc ((w+AMP2*2) * sizeof(column[0]));
+			allocated_width = w;
+		}
+		if (h > allocated_height) {
+			free (rowptr);
+			rowptr = malloc ((h+AMP2*2) * sizeof(rowptr[0]));
+			allocated_height = h;
+		}
 		cached_width = w;
 		cached_height = h;
 		for (v=0 ; v<h+AMP2*2 ; v++)
