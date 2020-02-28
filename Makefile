@@ -137,6 +137,17 @@ else ifeq ($(platform), libnx)
     CFLAGS += -std=gnu11
     STATIC_LINKING = 1
     HAVE_OPENGL = 1
+# CTR (3DS)
+else ifeq ($(platform), ctr)
+    TARGET := $(TARGET_NAME)_libretro_$(platform).a
+    CC = $(DEVKITARM)/bin/arm-none-eabi-gcc$(EXE_EXT)
+    CXX = $(DEVKITARM)/bin/arm-none-eabi-g++$(EXE_EXT)
+    AR = $(DEVKITARM)/bin/arm-none-eabi-ar$(EXE_EXT)
+    DEFINES += -D_3DS -DARM11 -march=armv6k -mtune=mpcore -mfloat-abi=hard -I$(DEVKITPRO)/ctrulib/libctru/include
+    CFLAGS += $(DEFINES) -Dstricmp=strcasecmp -Dstrnicmp=strncasecmp
+    CXXFLAGS += $(CFLAGS) -std=gnu++11
+    STATIC_LINKING = 1
+    HAVE_OPENGL = 0
 else
    CC = gcc
    TARGET := $(TARGET_NAME)_libretro.dll
