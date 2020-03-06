@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // common.c -- misc functions used in client and server
 #include "qcommon.h"
+#include "../client/qmenu.h"
 #include <setjmp.h>
 
 #define	MAXPRINTMSG	4096
@@ -43,7 +44,7 @@ cvar_t	*timescale;
 cvar_t	*fixedtime;
 cvar_t	*logfile_active;	// 1 = buffer log, 2 = flush after each print
 cvar_t	*showtrace;
-cvar_t	*dedicated;
+extern cvar_t	*dedicated;
 
 FILE	*logfile;
 

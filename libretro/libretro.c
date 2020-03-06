@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <glsym/glsym.h>
 #endif
 
+#include <ctype.h>
 #include <libretro.h>
 #include <retro_dirent.h>
 #include <features/features_cpu.h>
@@ -1958,9 +1959,8 @@ extern viddef_t vid;
 #define REF_OPENGL  0
 
 cvar_t *vid_ref;
-cvar_t *vid_fullscreen;
-cvar_t *vid_gamma;
-cvar_t *scr_viewsize;
+extern cvar_t *vid_fullscreen;
+extern cvar_t *vid_gamma;
 
 cvar_t *gl_picmip;
 cvar_t *gl_mode;
@@ -2355,7 +2355,7 @@ cvar_t *leftanalog_sensitivity;
 cvar_t *rightanalog_sensitivity;
 cvar_t *vert_motioncam_sensitivity;
 cvar_t *hor_motioncam_sensitivity;
-cvar_t *use_gyro;
+extern cvar_t *use_gyro;
 extern cvar_t *pstv_rumble;
 extern cvar_t *gl_xflip;
 

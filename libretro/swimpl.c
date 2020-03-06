@@ -10,6 +10,8 @@ extern int scr_width;
 extern int scr_height;
 extern void *tex_buffer;
 
+void VID_NewWindow (int width, int height);
+
 void SWimp_BeginFrame( float camera_separation )
 {
 }
