@@ -305,6 +305,7 @@ void Cmd_ForwardToServer (void)
 	}
 }
 
+#ifndef __LIBRETRO__
 void CL_Setenv_f( void )
 {
 	int argc = Cmd_Argc();
@@ -339,7 +340,7 @@ void CL_Setenv_f( void )
 		}
 	}
 }
-
+#endif
 
 /*
 ==================
@@ -1528,7 +1529,9 @@ void CL_InitLocal (void)
 
 // 	Cmd_AddCommand ("packet", CL_Packet_f); // this is dangerous to leave in
 
+#ifndef __LIBRETRO__
 	Cmd_AddCommand ("setenv", CL_Setenv_f );
+#endif
 
 	Cmd_AddCommand ("precache", CL_Precache_f);
 

@@ -1112,3 +1112,4 @@ struct edict_s
 	monsterinfo_t	monsterinfo;
 };
 
+void IN_StartRumble (void);
