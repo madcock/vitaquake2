@@ -85,6 +85,18 @@ else ifeq ($(platform), linux-portable)
 	GL_LIB := -lGL
    SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T
 	LIBM :=
+
+else ifneq (,$(findstring rockchip,$(platform)))
+   EXT ?= so
+   TARGET := $(TARGET_NAME)_libretro.$(EXT)
+   CFLAGS += -D_POSIX_C_SOURCE=199309L -DMESA_EGL_NO_X11_HEADERS -DEGL_NO_X11
+   fpic := -fPIC
+   SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
+   GLES := 1
+   ifneq (,$(findstring RK3399,$(platform)))
+       GLES31 := 1
+   endif
+
 else ifneq (,$(findstring osx,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
@@ -167,6 +179,21 @@ else
    HAVE_OPENGL = 1
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
    GL_LIB = -lopengl32
+endif
+
+ifeq ($(GLES), 1)
+   HAVE_OPENGL = 0
+   CFLAGS += -DHAVE_OPENGLES
+   GL_LIB += -lGLESv2
+   ifeq ($(GLES31), 1)
+      CFLAGS += -DHAVE_OPENGLES3 -DHAVE_OPENGLES_3_1
+   else ifeq ($(GLES3), 1)
+      CFLAGS += -DHAVE_OPENGLES3
+   else
+      CFLAGS += -DHAVE_OPENGLES2
+   endif
+else
+   HAVE_OPENGL = 1
 endif
 
 LDFLAGS += $(LIBM)
