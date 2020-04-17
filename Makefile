@@ -192,8 +192,6 @@ ifeq ($(GLES), 1)
    else
       CFLAGS += -DHAVE_OPENGLES2
    endif
-else
-   HAVE_OPENGL = 1
 endif
 
 LDFLAGS += $(LIBM)
