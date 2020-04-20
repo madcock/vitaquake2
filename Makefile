@@ -162,6 +162,17 @@ else ifeq ($(platform), psl1ght)
    CXXFLAGS += -D__CELLOS_LV2__ -D__PSL1GHT__ -mcpu=cell
    STATIC_LINKING = 1
    HAVE_OPENGL = 0
+# WiiU
+else ifeq ($(platform), wiiu)
+   EXT=a
+   TARGET := $(TARGET_NAME)_libretro_$(platform).$(EXT)
+   CC = $(DEVKITPPC)/bin/powerpc-eabi-gcc$(EXE_EXT)
+   CXX = $(DEVKITPPC)/bin/powerpc-eabi-g++$(EXE_EXT)
+   AR = $(DEVKITPPC)/bin/powerpc-eabi-ar$(EXE_EXT)
+   CFLAGS += -DGEKKO -DHW_RVL -DWIIU -mcpu=750 -meabi -mhard-float
+   CXXFLAGS += -DGEKKO -DHW_RVL -DWIIU -mcpu=750 -meabi -mhard-float
+   STATIC_LINKING = 1
+   HAVE_OPENGL = 0
 # CTR (3DS)
 else ifeq ($(platform), ctr)
     TARGET := $(TARGET_NAME)_libretro_$(platform).a
