@@ -1544,7 +1544,7 @@ void retro_get_system_info(struct retro_system_info *info)
 {
    memset(info, 0, sizeof(*info));
    info->library_name     = "vitaQuakeII";
-   info->library_version  = "v2.1" ;
+   info->library_version  = "v2.3" ;
    info->need_fullpath    = true;
    info->valid_extensions = "pak";
 }

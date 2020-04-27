@@ -1355,8 +1355,8 @@ void SCR_UpdateScreen (void)
 		{	//  loading plaque over black screen
 			int		w, h;
 
-			re.CinematicSetPalette(NULL);
-			scr_draw_loading = false;
+			if (i == 0) re.CinematicSetPalette(NULL);
+			if (i == numframes - 1) scr_draw_loading = false;
 			re.DrawGetPicSize (&w, &h, "loading");
 			re.DrawPic ((viddef.width-w * scale)/2, (viddef.height-h * scale)/2, "loading", scale);
 //			re.EndFrame();

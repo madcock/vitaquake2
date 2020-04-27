@@ -99,54 +99,11 @@ REFGL = 	$(CORE_DIR)/ref_gl/gl_draw.c \
 REFCOMMON = $(CORE_DIR)/ref_common/r_alias_common.c \
 				$(CORE_DIR)/ref_common/r_image_common.c
 
-GAME = 		$(CORE_DIR)/game/m_tank.c \
-				$(CORE_DIR)/game/p_client.c \
-				$(CORE_DIR)/game/p_hud.c \
-				$(CORE_DIR)/game/p_trail.c \
-				$(CORE_DIR)/game/p_view.c \
-				$(CORE_DIR)/game/p_weapon.c \
-				$(CORE_DIR)/game/q_shared.c \
-				$(CORE_DIR)/game/g_ai.c \
-				$(CORE_DIR)/game/g_chase.c \
-				$(CORE_DIR)/game/g_cmds.c \
-				$(CORE_DIR)/game/g_combat.c \
-				$(CORE_DIR)/game/g_func.c \
-				$(CORE_DIR)/game/g_items.c \
-				$(CORE_DIR)/game/g_main.c \
-				$(CORE_DIR)/game/g_misc.c \
-				$(CORE_DIR)/game/g_monster.c \
-				$(CORE_DIR)/game/g_phys.c \
-				$(CORE_DIR)/game/g_save.c \
-				$(CORE_DIR)/game/g_spawn.c \
-				$(CORE_DIR)/game/g_svcmds.c \
-				$(CORE_DIR)/game/g_target.c \
-				$(CORE_DIR)/game/g_trigger.c \
-				$(CORE_DIR)/game/g_turret.c \
-				$(CORE_DIR)/game/g_utils.c \
-				$(CORE_DIR)/game/g_weapon.c \
-				$(CORE_DIR)/game/m_actor.c \
-				$(CORE_DIR)/game/m_berserk.c \
-				$(CORE_DIR)/game/m_boss2.c \
-				$(CORE_DIR)/game/m_boss3.c \
-				$(CORE_DIR)/game/m_boss31.c \
-				$(CORE_DIR)/game/m_boss32.c \
-				$(CORE_DIR)/game/m_brain.c \
-				$(CORE_DIR)/game/m_chick.c \
-				$(CORE_DIR)/game/m_flash.c \
-				$(CORE_DIR)/game/m_flipper.c \
-				$(CORE_DIR)/game/m_float.c \
-				$(CORE_DIR)/game/m_flyer.c \
-				$(CORE_DIR)/game/m_gladiator.c \
-				$(CORE_DIR)/game/m_gunner.c \
-				$(CORE_DIR)/game/m_hover.c \
-				$(CORE_DIR)/game/m_infantry.c \
-				$(CORE_DIR)/game/m_insane.c \
-				$(CORE_DIR)/game/m_medic.c \
-				$(CORE_DIR)/game/m_move.c \
-				$(CORE_DIR)/game/m_mutant.c \
-				$(CORE_DIR)/game/m_parasite.c \
-				$(CORE_DIR)/game/m_soldier.c \
-				$(CORE_DIR)/game/m_supertank.c
+BASEQ2_DIRS = game game/savegame game/player game/monster/berserker game/monster/boss2 game/monster/boss3 game/monster/brain \
+	game/monster/chick game/monster/flipper game/monster/float game/monster/flyer game/monster/gladiator game/monster/gunner \
+	game/monster/hover game/monster/infantry game/monster/insane game/monster/medic game/monster/misc game/monster/mutant \
+	game/monster/parasite game/monster/soldier game/monster/supertank game/monster/tank game/shared
+BASEQ2 := $(foreach dir,$(BASEQ2_DIRS), $(wildcard $(dir)/*.c))
 
 ROGUE_DIRS = rogue rogue/shared rogue/savegame rogue/player rogue/dm rogue/monster/widow rogue/monster/turret rogue/monster/tank \
 	rogue/monster/supertank rogue/monster/stalker rogue/monster/soldier rogue/monster/parasite rogue/monster/mutant rogue/monster/misc \
@@ -185,7 +142,7 @@ SOURCES_C   += $(ZAERO)
 else ifeq ($(basegame),rogue)
 SOURCES_C   += $(ROGUE)
 else
-SOURCES_C   += $(GAME)
+SOURCES_C   += $(BASEQ2)
 endif
 
 SOURCES_C   += $(foreach dir,$(JPEG8C_DIR), $(wildcard $(dir)/*.c))

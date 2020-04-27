@@ -677,8 +677,8 @@ void R_DrawAliasModel (entity_t *e)
 		qglMatrixMode( GL_PROJECTION );
 		qglPushMatrix();
 		qglLoadIdentity();
-		if (r_lefthand->value == 1.0f) qglScalef( -1, 1, 1 );
 	    MYgluPerspective( r_newrefdef.fov_y, ( float ) r_newrefdef.width / r_newrefdef.height,  4,  4096);
+		if (r_lefthand->value == 1.0f) qglScalef( -1, 1, 1 );
 		qglMatrixMode( GL_MODELVIEW );
 
 		if (r_lefthand->value == 1.0f) qglCullFace( GL_BACK );

@@ -433,8 +433,6 @@ void M_Main_Draw (void)
 	re.DrawPic( (xoffset - 30 - w) * scale, ystart * scale, "m_main_plaque", scale );
 
 	re.DrawPic( (xoffset - 30 - w) * scale, (ystart + h + 5) * scale, "m_main_logo", scale );
-
-	Menu_DrawString( xoffset - 245 - w, ystart - 20, "Thanks to XandridFire, Tain Sueiras, nobodywasishere and RaveHeart for the awesome support on Patreon" );
 }
 
 
