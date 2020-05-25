@@ -309,11 +309,11 @@ static bool context_framebuffer_lock(void *data)
     return false;
 }
 
-bool initialize_opengl(void)
+bool initialize_opengl(unsigned preferred)
 {
    glsm_ctx_params_t params = {0};
 
-   params.context_type     = RETRO_HW_CONTEXT_OPENGL;
+   params.context_type     = preferred;
    params.context_reset    = context_reset;
    params.context_destroy  = context_destroy;
    params.environ_cb       = environ_cb;
@@ -1659,9 +1659,34 @@ bool retro_load_game(const struct retro_game_info *info)
 		return false;
 	}
 
+#ifdef HAVE_OPENGL
+	// get current video driver
+	unsigned preferred;
+	if (!environ_cb(RETRO_ENVIRONMENT_GET_PREFERRED_HW_RENDER, &preferred))
+		preferred = RETRO_HW_CONTEXT_DUMMY;
+	bool found_gl_context = false;
+	if (preferred == RETRO_HW_CONTEXT_OPENGL || preferred == RETRO_HW_CONTEXT_OPENGL_CORE)
+	{
+		// try requesting the right context for current driver
+		found_gl_context = initialize_opengl(preferred);
+	}
+	else if (preferred == RETRO_HW_CONTEXT_VULKAN)
+	{
+		// if vulkan is the current driver, we probably prefer glcore over gl so that the same slang shaders can be used
+		found_gl_context = initialize_opengl(RETRO_HW_CONTEXT_OPENGL_CORE);
+	}
+	else
+	{
+		// try every context as fallback if current driver wasn't found
+		found_gl_context = initialize_opengl(RETRO_HW_CONTEXT_OPENGL_CORE);
+		if (!found_gl_context)
+			found_gl_context = initialize_opengl(RETRO_HW_CONTEXT_OPENGL);
+	}
+#endif
+
 	if (!enable_opengl
 #ifdef HAVE_OPENGL
-	    || !initialize_opengl()
+	    || !found_gl_context
 #endif
 	    )
 	{
