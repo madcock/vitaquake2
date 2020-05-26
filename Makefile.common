@@ -103,27 +103,27 @@ BASEQ2_DIRS = game game/savegame game/player game/monster/berserker game/monster
 	game/monster/chick game/monster/flipper game/monster/float game/monster/flyer game/monster/gladiator game/monster/gunner \
 	game/monster/hover game/monster/infantry game/monster/insane game/monster/medic game/monster/misc game/monster/mutant \
 	game/monster/parasite game/monster/soldier game/monster/supertank game/monster/tank game/shared
-BASEQ2 := $(foreach dir,$(BASEQ2_DIRS), $(wildcard $(dir)/*.c))
+BASEQ2 := $(foreach dir,$(BASEQ2_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
 ROGUE_DIRS = rogue rogue/shared rogue/savegame rogue/player rogue/dm rogue/monster/widow rogue/monster/turret rogue/monster/tank \
 	rogue/monster/supertank rogue/monster/stalker rogue/monster/soldier rogue/monster/parasite rogue/monster/mutant rogue/monster/misc \
 	rogue/monster/medic rogue/monster/insane rogue/monster/infantry rogue/monster/hover rogue/monster/gunner rogue/monster/gladiator \
 	rogue/monster/flyer rogue/monster/float rogue/monster/flipper rogue/monster/chick rogue/monster/carrier rogue/monster/brain \
 	rogue/monster/boss3 rogue/monster/boss2 rogue/monster/berserker
-ROGUE := $(foreach dir,$(ROGUE_DIRS), $(wildcard $(dir)/*.c))
+ROGUE := $(foreach dir,$(ROGUE_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
 XATRIX_DIRS = xatrix xatrix/shared xatrix/savegame xatrix/player xatrix/monster/tank xatrix/monster/supertank xatrix/monster/soldier \
 	xatrix/monster/parasite xatrix/monster/mutant xatrix/monster/misc xatrix/monster/medic xatrix/monster/insane xatrix/monster/infantry xatrix/monster/hover xatrix/monster/gunner \
 	xatrix/monster/gladiator xatrix/monster/gekk xatrix/monster/flyer xatrix/monster/float xatrix/monster/flipper xatrix/monster/fixbot xatrix/monster/chick \
 	xatrix/monster/brain xatrix/monster/boss5 xatrix/monster/boss3 xatrix/monster/boss2 xatrix/monster/berserker
-XATRIX := $(foreach dir,$(XATRIX_DIRS), $(wildcard $(dir)/*.c))
+XATRIX := $(foreach dir,$(XATRIX_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
 ZAERO_DIRS = zaero zaero/zaero zaero/shared zaero/savegame zaero/player zaero/monster/tank zaero/monster/supertank \
 	zaero/monster/soldier zaero/monster/sentien zaero/monster/parasite zaero/monster/mutant zaero/monster/misc zaero/monster/medic \
 	zaero/monster/insane zaero/monster/infantry zaero/monster/hover zaero/monster/hound zaero/monster/handler zaero/monster/gunner \
 	zaero/monster/gladiator zaero/monster/flyer zaero/monster/float zaero/monster/flipper zaero/monster/chick zaero/monster/brain \
 	zaero/monster/boss3 zaero/monster/boss2 zaero/monster/boss zaero/monster/berserker zaero/monster/actor
-ZAERO := $(foreach dir,$(ZAERO_DIRS), $(wildcard $(dir)/*.c))
+ZAERO := $(foreach dir,$(ZAERO_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
 SOURCES_C   += $(CLIENT) $(QCOMMON) $(SERVER) $(SYSTEM) $(REFSOFT) $(REFCOMMON)
 
