@@ -187,7 +187,7 @@ else ifeq ($(platform), ctr)
     STATIC_LINKING = 1
     HAVE_OPENGL = 0
 else
-   CC = gcc
+   CC ?= gcc
    TARGET := $(TARGET_NAME)_libretro.dll
    HAVE_OPENGL = 1
    SHARED := -shared -static-libgcc -static-libstdc++ -s -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
