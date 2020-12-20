@@ -160,8 +160,8 @@ else ifeq ($(platform), psl1ght)
    CXX = $(PS3DEV)/ppu/bin/ppu-g++$(EXE_EXT)
    CC_AS = $(PS3DEV)/ppu/bin/ppu-gcc$(EXE_EXT)
    AR = $(PS3DEV)/ppu/bin/ppu-ar$(EXE_EXT)
-   CFLAGS += -D__CELLOS_LV2__ -D__PSL1GHT__ -mcpu=cell
-   CXXFLAGS += -D__CELLOS_LV2__ -D__PSL1GHT__ -mcpu=cell
+   CFLAGS += -D__PS3__ -D__PSL1GHT__ -mcpu=cell
+   CXXFLAGS += -D__PS3__ -D__PSL1GHT__ -mcpu=cell
    STATIC_LINKING = 1
    HAVE_OPENGL = 0
 # WiiU
