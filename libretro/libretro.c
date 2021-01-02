@@ -1961,12 +1961,14 @@ viddef_t vid;
 #define REF_OPENGL  0
 
 cvar_t *vid_ref;
-extern cvar_t *vid_fullscreen;
+cvar_t *vid_fullscreen;
 extern cvar_t *vid_gamma;
 
 extern cvar_t *gl_picmip;
 cvar_t *gl_mode;
+#ifdef HAVE_OPENGL
 extern cvar_t *gl_driver;
+#endif
 
 extern void M_ForceMenuOff( void );
 
@@ -2120,12 +2122,15 @@ static void ApplyChanges( void *unused )
 
    Cvar_SetValue( "vid_gamma", gamma );
    /*Cvar_SetValue( "gl_mode", s_mode_list.curvalue ); */
-   if (enable_opengl) {
+#ifdef HAVE_OPENGL
+   if (enable_opengl)
+   {
      Cvar_SetValue( "gl_picmip", 3 - s_tq_slider.curvalue );
 
      Cvar_Set( "vid_ref", "gl" );
      Cvar_Set( "gl_driver", "opengl32" );
    }
+#endif
    M_ForceMenuOff();
 }
 
@@ -2211,8 +2216,10 @@ void    VID_MenuInit (void)
       0
    };
 
+#ifdef HAVE_OPENGL
    if ( !gl_driver )
       gl_driver = Cvar_Get( "gl_driver", "opengl32", 0 );
+#endif
    if ( !scr_viewsize )
       scr_viewsize = Cvar_Get ("viewsize", "100", CVAR_ARCHIVE);
 

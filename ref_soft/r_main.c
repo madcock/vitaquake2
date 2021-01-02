@@ -137,7 +137,7 @@ static cvar_t  *r_novis;
 cvar_t	*r_speeds;
 cvar_t	*r_refsoft_lightlevel;	//FIXME HACK
 
-static cvar_t	*vid_fullscreen;
+extern cvar_t	*vid_fullscreen;
 cvar_t	*vid_gamma;
 
 //PGM
