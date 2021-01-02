@@ -29,10 +29,10 @@ typedef struct
 
 extern	model_t	*loadmodel;
 
-char	skyname[MAX_QPATH];
-float	skyrotate;
-vec3_t	skyaxis;
-image_t	*sky_images[6];
+extern char	skyname[MAX_QPATH];
+extern float	skyrotate;
+extern vec3_t	skyaxis;
+extern image_t	*sky_images[6];
 
 msurface_t	*warpface;
 

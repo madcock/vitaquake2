@@ -42,7 +42,7 @@ static espan_t	*s_polygon_spans;
 
 polydesc_t	r_polydesc;
 
-msurface_t *r_alpha_surfaces;
+extern msurface_t *r_alpha_surfaces;
 
 extern int *r_turb_turb;
 

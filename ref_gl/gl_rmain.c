@@ -82,7 +82,7 @@ cvar_t	*r_speeds;
 cvar_t	*r_fullbright;
 cvar_t	*r_novis;
 cvar_t	*r_nocull;
-cvar_t	*r_lerpmodels;
+extern cvar_t	*r_lerpmodels;
 cvar_t	*r_lefthand;
 
 cvar_t	*r_lightlevel;	/* FIXME: This is a HACK to get the client's light level */
@@ -108,7 +108,7 @@ cvar_t	*gl_ext_compiled_vertex_array;
 cvar_t	*gl_log;
 cvar_t	*gl_bitdepth;
 cvar_t	*gl_drawbuffer;
-cvar_t  *gl_driver;
+extern cvar_t  *gl_driver;
 cvar_t	*gl_lightmap;
 cvar_t	*gl_shadows;
 cvar_t	*gl_mode;
@@ -117,7 +117,7 @@ cvar_t  *gl_monolightmap;
 cvar_t	*gl_modulate;
 cvar_t	*gl_nobind;
 cvar_t	*gl_round_down;
-cvar_t	*gl_picmip;
+extern cvar_t	*gl_picmip;
 cvar_t	*gl_skymip;
 cvar_t	*gl_showtris;
 cvar_t	*gl_ztrick;

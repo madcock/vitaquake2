@@ -27,7 +27,7 @@ typedef struct
 
 #include "gl_local.h"
 
-image_t		*draw_chars;
+extern image_t		*draw_chars;
 
 /*
 ===============

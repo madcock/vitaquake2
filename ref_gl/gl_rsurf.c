@@ -29,7 +29,7 @@ typedef struct
 
 static vec3_t	modelorg;		/* relative to viewpoint */
 
-msurface_t	*r_alpha_surfaces;
+extern msurface_t	*r_alpha_surfaces;
 
 #define DYNAMIC_LIGHT_WIDTH  128
 #define DYNAMIC_LIGHT_HEIGHT 128
