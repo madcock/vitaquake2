@@ -57,6 +57,10 @@ msurface_t *r_alpha_surfaces;
 
 cvar_t *r_lerpmodels;
 
+vec3_t			pointcolor;
+
+int r_visframecount;
+
 /* ----------------------------------------------- */
 
 qboolean gl_set = false;

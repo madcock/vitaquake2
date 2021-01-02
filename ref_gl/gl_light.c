@@ -208,7 +208,7 @@ LIGHT SAMPLING
 =============================================================================
 */
 
-vec3_t			pointcolor;
+extern vec3_t			pointcolor;
 cplane_t		*lightplane;		/* used as shadow plane */
 extern vec3_t			lightspot;
 
