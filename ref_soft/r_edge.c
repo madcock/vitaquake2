@@ -808,9 +808,9 @@ void D_CalcGradients (msurface_t *pface)
 	if (pface->texinfo->flags & SURF_FLOWING)
 	{
 		if(pface->texinfo->flags & SURF_WARP)
-			sadjust += 0x10000 * (-128 * ( (r_newrefdef.time * 0.25) - (int)(r_newrefdef.time * 0.25) ));
+			sadjust += 0x10000 * (-128 * ( (r_refsoft_newrefdef.time * 0.25) - (int)(r_refsoft_newrefdef.time * 0.25) ));
 		else
-			sadjust += 0x10000 * (-128 * ( (r_newrefdef.time * 0.77) - (int)(r_newrefdef.time * 0.77) ));
+			sadjust += 0x10000 * (-128 * ( (r_refsoft_newrefdef.time * 0.77) - (int)(r_refsoft_newrefdef.time * 0.77) ));
 	}
 	// PGM
 
@@ -861,9 +861,9 @@ void D_TurbulentSurf (surf_t *s)
 	{
 	// FIXME: we don't want to do all this for every polygon!
 	// TODO: store once at start of frame
-		currententity = s->entity;	//FIXME: make this passed in to
+		refsoft_currententity = s->entity;	//FIXME: make this passed in to
 									// R_RotateBmodel ()
-		VectorSubtract (r_origin, currententity->origin,
+		VectorSubtract (r_refsoft_origin, refsoft_currententity->origin,
 				local_modelorg);
 		TransformVector (local_modelorg, transformed_modelorg);
 
@@ -892,10 +892,10 @@ void D_TurbulentSurf (surf_t *s)
 	// FIXME: we don't want to do this every time!
 	// TODO: speed up
 	//
-		currententity = NULL;	// &r_worldentity;
+		refsoft_currententity = NULL;	// &r_worldentity;
 		VectorCopy (world_transformed_modelorg,
 					transformed_modelorg);
-		VectorCopy (base_vpn, vpn);
+		VectorCopy (base_vpn, refsoft_vpn);
 		VectorCopy (base_vup, vup);
 		VectorCopy (base_vright, vright);
 		R_TransformFrustum ();
@@ -950,16 +950,16 @@ void D_SolidSurf (surf_t *s)
 	{
 	// FIXME: we don't want to do all this for every polygon!
 	// TODO: store once at start of frame
-		currententity = s->entity;	//FIXME: make this passed in to
+		refsoft_currententity = s->entity;	//FIXME: make this passed in to
 									// R_RotateBmodel ()
-		VectorSubtract (r_origin, currententity->origin, local_modelorg);
+		VectorSubtract (r_refsoft_origin, refsoft_currententity->origin, local_modelorg);
 		TransformVector (local_modelorg, transformed_modelorg);
 
 		R_RotateBmodel ();	// FIXME: don't mess with the frustum,
 							// make entity passed in
 	}
 	else
-		currententity = &r_worldentity;
+		refsoft_currententity = &r_worldentity;
 
 	pface = s->msurf;
 #if 1
@@ -973,12 +973,12 @@ void D_SolidSurf (surf_t *s)
 		{
 			VectorCopy( pface->plane->normal, normal );
 //			TransformVector( pface->plane->normal, normal);
-			dot = DotProduct( normal, vpn );
+			dot = DotProduct( normal, refsoft_vpn );
 		}
 		else
 		{
 			VectorCopy( pface->plane->normal, normal );
-			dot = DotProduct( normal, vpn );
+			dot = DotProduct( normal, refsoft_vpn );
 		}
 
 		if ( pface->flags & SURF_PLANEBACK )
@@ -1012,11 +1012,11 @@ void D_SolidSurf (surf_t *s)
 	//
 		VectorCopy (world_transformed_modelorg,
 					transformed_modelorg);
-		VectorCopy (base_vpn, vpn);
+		VectorCopy (base_vpn, refsoft_vpn);
 		VectorCopy (base_vup, vup);
 		VectorCopy (base_vright, vright);
 		R_TransformFrustum ();
-		currententity = NULL;	//&r_worldentity;
+		refsoft_currententity = NULL;	//&r_worldentity;
 	}
 }
 
@@ -1059,8 +1059,8 @@ void D_DrawSurfaces (void)
 {
 	surf_t			*s;
 
-//	currententity = NULL;	//&r_worldentity;
-	VectorSubtract (r_origin, vec3_origin, modelorg);
+//	refsoft_currententity = NULL;	//&r_worldentity;
+	VectorSubtract (r_refsoft_origin, vec3_origin, modelorg);
 	TransformVector (modelorg, transformed_modelorg);
 	VectorCopy (transformed_modelorg, world_transformed_modelorg);
 
@@ -1086,8 +1086,8 @@ void D_DrawSurfaces (void)
 	else
 		D_DrawflatSurfaces ();
 
-	currententity = NULL;	//&r_worldentity;
-	VectorSubtract (r_origin, vec3_origin, modelorg);
+	refsoft_currententity = NULL;	//&r_worldentity;
+	VectorSubtract (r_refsoft_origin, vec3_origin, modelorg);
 	R_TransformFrustum ();
 }
 

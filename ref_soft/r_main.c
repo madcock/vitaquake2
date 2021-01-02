@@ -21,22 +21,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 
-viddef_t	vid;
-refimport_t	ri;
+extern viddef_t	vid;
 
-unsigned	d_8to24table[256];
+unsigned	d_refsoft_8to24table[256];
 
 entity_t	r_worldentity;
 
-char		skyname[MAX_QPATH];
-float		skyrotate;
-vec3_t		skyaxis;
-image_t		*sky_images[6];
+static char		skyname[MAX_QPATH];
+static float		skyrotate;
+static vec3_t		skyaxis;
+static image_t		*sky_images[6];
 
-refdef_t	r_newrefdef;
-model_t		*currentmodel;
+refdef_t	r_refsoft_newrefdef;
+model_t		*refsoft_currentmodel;
 
-model_t		*r_worldmodel;
+model_t		*r_refsoft_worldmodel;
 
 byte		r_warpbuffer[WARP_WIDTH * WARP_HEIGHT];
 
@@ -69,9 +68,9 @@ static void R_DrawBeam( entity_t *e );
 // view origin
 //
 vec3_t	vup, base_vup;
-vec3_t	vpn, base_vpn;
+vec3_t	refsoft_vpn, base_vpn;
 vec3_t	vright, base_vright;
-vec3_t	r_origin;
+vec3_t	r_refsoft_origin;
 
 //
 // screen size info
@@ -104,7 +103,7 @@ int			*pfrustum_indexes[4];
 int			r_frustum_indexes[4*6];
 
 mleaf_t		*r_viewleaf;
-int			r_viewcluster, r_oldviewcluster;
+int			r_refsoft_viewcluster, r_refsoft_oldviewcluster;
 
 image_t  	*r_notexture_mip;
 
@@ -113,7 +112,7 @@ float	se_time1, se_time2, de_time1, de_time2;
 
 static void SWR_MarkLeaves (void);
 
-cvar_t	*r_lefthand;
+cvar_t	*r_refsoft_lefthand;
 cvar_t	*sw_aliasstats;
 cvar_t	*sw_allow_modex;
 cvar_t	*sw_clearcolor;
@@ -128,17 +127,17 @@ cvar_t  *sw_stipplealpha;
 cvar_t	*sw_surfcacheoverride;
 cvar_t	*sw_waterwarp;
 
-cvar_t	*r_drawworld;
-cvar_t	*r_drawentities;
+cvar_t	*r_refsoft_drawworld;
+static cvar_t	*r_drawentities;
 cvar_t	*r_dspeeds;
 cvar_t	*r_fullbright;
-cvar_t  *r_lerpmodels;
-cvar_t  *r_novis;
+cvar_t  *r_refsoft_lerpmodels;
+static cvar_t  *r_novis;
 
 cvar_t	*r_speeds;
-cvar_t	*r_lightlevel;	//FIXME HACK
+cvar_t	*r_refsoft_lightlevel;	//FIXME HACK
 
-cvar_t	*vid_fullscreen;
+static cvar_t	*vid_fullscreen;
 cvar_t	*vid_gamma;
 
 //PGM
@@ -297,14 +296,14 @@ void SWR_Register (void)
 	sw_mode = ri.Cvar_Get( "sw_mode", "0", CVAR_ARCHIVE );
 	gl_xflip = ri.Cvar_Get( "gl_xflip", "0", CVAR_ARCHIVE);
 	
-	r_lefthand = ri.Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
+	r_refsoft_lefthand = ri.Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	r_speeds = ri.Cvar_Get ("r_speeds", "0", 0);
 	r_fullbright = ri.Cvar_Get ("r_fullbright", "0", 0);
 	r_drawentities = ri.Cvar_Get ("r_drawentities", "1", 0);
-	r_drawworld = ri.Cvar_Get ("r_drawworld", "1", 0);
+	r_refsoft_drawworld = ri.Cvar_Get ("r_drawworld", "1", 0);
 	r_dspeeds = ri.Cvar_Get ("r_dspeeds", "0", 0);
-	r_lightlevel = ri.Cvar_Get ("r_lightlevel", "0", 0);
-	r_lerpmodels = ri.Cvar_Get( "r_lerpmodels", "1", 0 );
+	r_refsoft_lightlevel = ri.Cvar_Get ("r_lightlevel", "0", 0);
+	r_refsoft_lerpmodels = ri.Cvar_Get( "r_lerpmodels", "1", 0 );
 	r_novis = ri.Cvar_Get( "r_novis", "0", 0 );
 
 	vid_fullscreen = ri.Cvar_Get( "vid_fullscreen", "0", CVAR_ARCHIVE );
@@ -411,7 +410,7 @@ R_NewMap
 */
 void R_NewMap (void)
 {
-	r_viewcluster = -1;
+	r_refsoft_viewcluster = -1;
 
 	r_cnumsurfs = sw_maxsurfs->value;
 
@@ -469,7 +468,7 @@ static void SWR_MarkLeaves (void)
 	mleaf_t	*leaf;
 	int		cluster;
 
-	if (r_oldviewcluster == r_viewcluster && !r_novis->value && r_viewcluster != -1)
+	if (r_refsoft_oldviewcluster == r_refsoft_viewcluster && !r_novis->value && r_refsoft_viewcluster != -1)
 		return;
 	
 	// development aid to let you run around and see exactly where
@@ -478,21 +477,21 @@ static void SWR_MarkLeaves (void)
 		return;
 
 	r_visframecount++;
-	r_oldviewcluster = r_viewcluster;
+	r_refsoft_oldviewcluster = r_refsoft_viewcluster;
 
-	if (r_novis->value || r_viewcluster == -1 || !r_worldmodel->vis)
+	if (r_novis->value || r_refsoft_viewcluster == -1 || !r_refsoft_worldmodel->vis)
 	{
 		// mark everything
-		for (i=0 ; i<r_worldmodel->numleafs ; i++)
-			r_worldmodel->leafs[i].visframe = r_visframecount;
-		for (i=0 ; i<r_worldmodel->numnodes ; i++)
-			r_worldmodel->nodes[i].visframe = r_visframecount;
+		for (i=0 ; i<r_refsoft_worldmodel->numleafs ; i++)
+			r_refsoft_worldmodel->leafs[i].visframe = r_visframecount;
+		for (i=0 ; i<r_refsoft_worldmodel->numnodes ; i++)
+			r_refsoft_worldmodel->nodes[i].visframe = r_visframecount;
 		return;
 	}
 
-	vis = SWR_Mod_ClusterPVS (r_viewcluster, r_worldmodel);
+	vis = SWR_Mod_ClusterPVS (r_refsoft_viewcluster, r_refsoft_worldmodel);
 	
-	for (i=0,leaf=r_worldmodel->leafs ; i<r_worldmodel->numleafs ; i++, leaf++)
+	for (i=0,leaf=r_refsoft_worldmodel->leafs ; i<r_refsoft_worldmodel->numleafs ; i++, leaf++)
 	{
 		cluster = leaf->cluster;
 		if (cluster == -1)
@@ -511,11 +510,11 @@ static void SWR_MarkLeaves (void)
 	}
 
 #if 0
-	for (i=0 ; i<r_worldmodel->vis->numclusters ; i++)
+	for (i=0 ; i<r_refsoft_worldmodel->vis->numclusters ; i++)
 	{
 		if (vis[i>>3] & (1<<(i&7)))
 		{
-			node = (mnode_t *)&r_worldmodel->leafs[i];	// FIXME: cluster
+			node = (mnode_t *)&r_refsoft_worldmodel->leafs[i];	// FIXME: cluster
 			do
 			{
 				if (node->visframe == r_visframecount)
@@ -551,36 +550,36 @@ static void SWR_DrawEntitiesOnList (void)
 		return;
 
 	// all bmodels have already been drawn by the edge list
-	for (i=0 ; i<r_newrefdef.num_entities ; i++)
+	for (i=0 ; i<r_refsoft_newrefdef.num_entities ; i++)
 	{
-		currententity = &r_newrefdef.entities[i];
+		refsoft_currententity = &r_refsoft_newrefdef.entities[i];
 
-		if ( currententity->flags & RF_TRANSLUCENT )
+		if ( refsoft_currententity->flags & RF_TRANSLUCENT )
 		{
 			translucent_entities = true;
 			continue;
 		}
 
-		if ( currententity->flags & RF_BEAM )
+		if ( refsoft_currententity->flags & RF_BEAM )
 		{
-			modelorg[0] = -r_origin[0];
-			modelorg[1] = -r_origin[1];
-			modelorg[2] = -r_origin[2];
+			modelorg[0] = -r_refsoft_origin[0];
+			modelorg[1] = -r_refsoft_origin[1];
+			modelorg[2] = -r_refsoft_origin[2];
 			VectorCopy( vec3_origin, r_entorigin );
-			R_DrawBeam( currententity );
+			R_DrawBeam( refsoft_currententity );
 		}
 		else
 		{
-			currentmodel = currententity->model;
-			if (!currentmodel)
+			refsoft_currentmodel = refsoft_currententity->model;
+			if (!refsoft_currentmodel)
 			{
 				SWR_DrawNullModel();
 				continue;
 			}
-			VectorCopy (currententity->origin, r_entorigin);
-			VectorSubtract (r_origin, r_entorigin, modelorg);
+			VectorCopy (refsoft_currententity->origin, r_entorigin);
+			VectorSubtract (r_refsoft_origin, r_entorigin, modelorg);
 
-			switch (currentmodel->type)
+			switch (refsoft_currentmodel->type)
 			{
 			case mod_sprite:
 				R_DrawSprite ();
@@ -599,33 +598,33 @@ static void SWR_DrawEntitiesOnList (void)
 	if ( !translucent_entities )
 		return;
 
-	for (i=0 ; i<r_newrefdef.num_entities ; i++)
+	for (i=0 ; i<r_refsoft_newrefdef.num_entities ; i++)
 	{
-		currententity = &r_newrefdef.entities[i];
+		refsoft_currententity = &r_refsoft_newrefdef.entities[i];
 
-		if ( !( currententity->flags & RF_TRANSLUCENT ) )
+		if ( !( refsoft_currententity->flags & RF_TRANSLUCENT ) )
 			continue;
 
-		if ( currententity->flags & RF_BEAM )
+		if ( refsoft_currententity->flags & RF_BEAM )
 		{
-			modelorg[0] = -r_origin[0];
-			modelorg[1] = -r_origin[1];
-			modelorg[2] = -r_origin[2];
+			modelorg[0] = -r_refsoft_origin[0];
+			modelorg[1] = -r_refsoft_origin[1];
+			modelorg[2] = -r_refsoft_origin[2];
 			VectorCopy( vec3_origin, r_entorigin );
-			R_DrawBeam( currententity );
+			R_DrawBeam( refsoft_currententity );
 		}
 		else
 		{
-			currentmodel = currententity->model;
-			if (!currentmodel)
+			refsoft_currentmodel = refsoft_currententity->model;
+			if (!refsoft_currentmodel)
 			{
 				SWR_DrawNullModel();
 				continue;
 			}
-			VectorCopy (currententity->origin, r_entorigin);
-			VectorSubtract (r_origin, r_entorigin, modelorg);
+			VectorCopy (refsoft_currententity->origin, r_entorigin);
+			VectorSubtract (r_refsoft_origin, r_entorigin, modelorg);
 
-			switch (currentmodel->type)
+			switch (refsoft_currentmodel->type)
 			{
 			case mod_sprite:
 				R_DrawSprite ();
@@ -702,7 +701,7 @@ mnode_t *R_FindTopnode (vec3_t mins, vec3_t maxs)
 	int			sides;
 	mnode_t *node;
 
-	node = r_worldmodel->nodes;
+	node = r_refsoft_worldmodel->nodes;
 
 	while (1)
 	{
@@ -810,26 +809,26 @@ void R_DrawBEntitiesOnList (void)
 
 	VectorCopy (modelorg, oldorigin);
 	insubmodel = true;
-	r_dlightframecount = r_framecount;
+	r_refsoft_dlightframecount = r_framecount;
 
-	for (i=0 ; i<r_newrefdef.num_entities ; i++)
+	for (i=0 ; i<r_refsoft_newrefdef.num_entities ; i++)
 	{
-		currententity = &r_newrefdef.entities[i];
-		currentmodel = currententity->model;
-		if (!currentmodel)
+		refsoft_currententity = &r_refsoft_newrefdef.entities[i];
+		refsoft_currentmodel = refsoft_currententity->model;
+		if (!refsoft_currentmodel)
 			continue;
-		if (currentmodel->nummodelsurfaces == 0)
+		if (refsoft_currentmodel->nummodelsurfaces == 0)
 			continue;	// clip brush only
-		if ( currententity->flags & RF_BEAM )
+		if ( refsoft_currententity->flags & RF_BEAM )
 			continue;
-		if (currentmodel->type != mod_brush)
+		if (refsoft_currentmodel->type != mod_brush)
 			continue;
 	// see if the bounding box lets us trivially reject, also sets
 	// trivial accept status
-		RotatedBBox (currentmodel->mins, currentmodel->maxs,
-			currententity->angles, mins, maxs);
-		VectorAdd (mins, currententity->origin, minmaxs);
-		VectorAdd (maxs, currententity->origin, (minmaxs+3));
+		RotatedBBox (refsoft_currentmodel->mins, refsoft_currentmodel->maxs,
+			refsoft_currententity->angles, mins, maxs);
+		VectorAdd (mins, refsoft_currententity->origin, minmaxs);
+		VectorAdd (maxs, refsoft_currententity->origin, (minmaxs+3));
 
 		clipflags = R_BmodelCheckBBox (minmaxs);
 		if (clipflags == BMODEL_FULLY_CLIPPED)
@@ -839,34 +838,34 @@ void R_DrawBEntitiesOnList (void)
 		if (!topnode)
 			continue;	// no part in a visible leaf
 
-		VectorCopy (currententity->origin, r_entorigin);
-		VectorSubtract (r_origin, r_entorigin, modelorg);
+		VectorCopy (refsoft_currententity->origin, r_entorigin);
+		VectorSubtract (r_refsoft_origin, r_entorigin, modelorg);
 
-		r_pcurrentvertbase = currentmodel->vertexes;
+		r_pcurrentvertbase = refsoft_currentmodel->vertexes;
 
       /* FIXME: stop transforming twice */
 		R_RotateBmodel ();
 
       /* calculate dynamic lighting for bmodel */
-		SWR_PushDlights (currentmodel);
+		SWR_PushDlights (refsoft_currentmodel);
 
 		if (topnode->contents == CONTENTS_NODE)
 		{
 		// not a leaf; has to be clipped to the world BSP
 			r_clipflags = clipflags;
-			R_DrawSolidClippedSubmodelPolygons (currentmodel, topnode);
+			R_DrawSolidClippedSubmodelPolygons (refsoft_currentmodel, topnode);
 		}
 		else
 		{
 		// falls entirely in one leaf, so we just put all the
 		// edges in the edge list and let 1/z sorting handle
 		// drawing order
-			R_DrawSubmodelPolygons (currentmodel, clipflags, topnode);
+			R_DrawSubmodelPolygons (refsoft_currentmodel, clipflags, topnode);
 		}
 
 	// put back world rotation and frustum clipping		
 	// FIXME: R_RotateBmodel should just work off base_vxx
-		VectorCopy (base_vpn, vpn);
+		VectorCopy (base_vpn, refsoft_vpn);
 		VectorCopy (base_vup, vup);
 		VectorCopy (base_vright, vright);
 		VectorCopy (oldorigin, modelorg);
@@ -889,7 +888,7 @@ void R_EdgeDrawing (void)
 	surf_t	lsurfs[NUMSTACKSURFACES +
 				((CACHE_SIZE - 1) / sizeof(surf_t)) + 1];
 
-	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
+	if ( r_refsoft_newrefdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
 	if (auxedges)
@@ -957,13 +956,13 @@ void R_CalcPalette (void)
 	vec3_t	premult;
 	int		v;
 
-	alpha = r_newrefdef.blend[3];
+	alpha = r_refsoft_newrefdef.blend[3];
 	if (alpha <= 0)
 	{
 		if (modified)
 		{	// set back to default
 			modified = false;
-			R_GammaCorrectAndSetPalette( ( const unsigned char * ) d_8to24table );
+			R_GammaCorrectAndSetPalette( ( const unsigned char * ) d_refsoft_8to24table );
 			return;
 		}
 		return;
@@ -973,13 +972,13 @@ void R_CalcPalette (void)
 	if (alpha > 1)
 		alpha = 1;
 
-	premult[0] = r_newrefdef.blend[0]*alpha*255;
-	premult[1] = r_newrefdef.blend[1]*alpha*255;
-	premult[2] = r_newrefdef.blend[2]*alpha*255;
+	premult[0] = r_refsoft_newrefdef.blend[0]*alpha*255;
+	premult[1] = r_refsoft_newrefdef.blend[1]*alpha*255;
+	premult[2] = r_refsoft_newrefdef.blend[2]*alpha*255;
 
 	one_minus_alpha = (1.0 - alpha);
 
-	in = (byte *)d_8to24table;
+	in = (byte *)d_refsoft_8to24table;
 	out = palette[0];
 	for (i=0 ; i<256 ; i++, in+=4, out+=4)
 	{
@@ -1003,15 +1002,15 @@ static void SWR_SetLightLevel (void)
 {
 	vec3_t		light;
 
-	if ((r_newrefdef.rdflags & RDF_NOWORLDMODEL) || (!r_drawentities->value) || (!currententity))
+	if ((r_refsoft_newrefdef.rdflags & RDF_NOWORLDMODEL) || (!r_drawentities->value) || (!refsoft_currententity))
 	{
-		r_lightlevel->value = 150.0;
+		r_refsoft_lightlevel->value = 150.0;
 		return;
 	}
 
 	/* save off light value for server to look at (BIG HACK!) */
-	SWR_LightPoint (r_newrefdef.vieworg, light);
-	r_lightlevel->value = 150.0 * light[0];
+	SWR_LightPoint (r_refsoft_newrefdef.vieworg, light);
+	r_refsoft_lightlevel->value = 150.0 * light[0];
 }
 
 
@@ -1023,9 +1022,9 @@ SWR_RenderFrame
 */
 static void SWR_RenderFrame (refdef_t *fd)
 {
-	r_newrefdef = *fd;
+	r_refsoft_newrefdef = *fd;
 
-	if (!r_worldmodel && !( r_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
+	if (!r_refsoft_worldmodel && !( r_refsoft_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
 		ri.Sys_Error (ERR_FATAL,"R_RenderView: NULL worldmodel");
 
 	VectorCopy (fd->vieworg, r_refdef.vieworg);
@@ -1038,7 +1037,7 @@ static void SWR_RenderFrame (refdef_t *fd)
 
 	SWR_MarkLeaves ();	// done here so we know if we're in water
 
-	SWR_PushDlights (r_worldmodel);
+	SWR_PushDlights (r_refsoft_worldmodel);
 
 	R_EdgeDrawing ();
 
@@ -1119,7 +1118,7 @@ void R_InitGraphics( int width, int height )
 
 	R_InitCaches ();
 
-	R_GammaCorrectAndSetPalette( ( const unsigned char *) d_8to24table );
+	R_GammaCorrectAndSetPalette( ( const unsigned char *) d_refsoft_8to24table );
 }
 
 /*
@@ -1135,7 +1134,7 @@ static void SWR_BeginFrame( float camera_separation )
 	if ( vid_gamma->modified )
 	{
 		Draw_BuildGammaTable();
-		R_GammaCorrectAndSetPalette( ( const unsigned char * ) d_8to24table );
+		R_GammaCorrectAndSetPalette( ( const unsigned char * ) d_refsoft_8to24table );
 
 		vid_gamma->modified = false;
 	}
@@ -1233,7 +1232,7 @@ static void SWR_CinematicSetPalette( const unsigned char *palette )
 	}
 	else
 	{
-		R_GammaCorrectAndSetPalette( ( const unsigned char * ) d_8to24table );
+		R_GammaCorrectAndSetPalette( ( const unsigned char * ) d_refsoft_8to24table );
 	}
 }
 
@@ -1364,7 +1363,7 @@ static void Draw_GetPalette (void)
 		ri.Sys_Error (ERR_FATAL, "Couldn't load pics/colormap.pcx");
 	vid.alphamap = vid.colormap + 64*256;
 
-	out = (byte *)d_8to24table;
+	out = (byte *)d_refsoft_8to24table;
 	for (i=0 ; i<256 ; i++, out+=4)
 	{
 		r = pal[i*3+0];

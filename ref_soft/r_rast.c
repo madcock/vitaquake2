@@ -190,20 +190,20 @@ void R_EmitSkyBox (void)
 	// set the eight fake vertexes
 	for (i=0 ; i<8 ; i++)
 		for (j=0 ; j<3 ; j++)
-			r_skyverts[i].position[j] = r_origin[j] + box_verts[i][j]*128;
+			r_skyverts[i].position[j] = r_refsoft_origin[j] + box_verts[i][j]*128;
 
 	// set the six fake planes
 	for (i=0 ; i<6 ; i++)
 		if (skybox_planes[i*2+1] > 0)
-			r_skyplanes[i].dist = r_origin[skybox_planes[i*2]]+128;
+			r_skyplanes[i].dist = r_refsoft_origin[skybox_planes[i*2]]+128;
 		else
-			r_skyplanes[i].dist = r_origin[skybox_planes[i*2]]-128;
+			r_skyplanes[i].dist = r_refsoft_origin[skybox_planes[i*2]]-128;
 
 	// fix texture offseets
 	for (i=0 ; i<6 ; i++)
 	{
-		r_skytexinfo[i].vecs[0][3] = -DotProduct (r_origin, r_skytexinfo[i].vecs[0]);
-		r_skytexinfo[i].vecs[1][3] = -DotProduct (r_origin, r_skytexinfo[i].vecs[1]);
+		r_skytexinfo[i].vecs[0][3] = -DotProduct (r_refsoft_origin, r_skytexinfo[i].vecs[0]);
+		r_skytexinfo[i].vecs[1][3] = -DotProduct (r_refsoft_origin, r_skytexinfo[i].vecs[1]);
 	}
 
 	// emit the six faces
@@ -583,12 +583,12 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	r_nearzi = 0;
 	r_nearzionly = false;
 	makeleftedge = makerightedge = false;
-	pedges = currentmodel->edges;
+	pedges = refsoft_currentmodel->edges;
 	r_lastvertvalid = false;
 
 	for (i=0 ; i<fa->numedges ; i++)
 	{
-		lindex = currentmodel->surfedges[fa->firstedge + i];
+		lindex = refsoft_currentmodel->surfedges[fa->firstedge + i];
 
 		if (lindex > 0)
 		{
@@ -712,7 +712,7 @@ void R_RenderFace (msurface_t *fa, int clipflags)
 	surface_p->flags = fa->flags;
 	surface_p->insubmodel = insubmodel;
 	surface_p->spanstate = 0;
-	surface_p->entity = currententity;
+	surface_p->entity = refsoft_currententity;
 	surface_p->key = r_currentkey++;
 	surface_p->spans = NULL;
 
@@ -833,7 +833,7 @@ void R_RenderBmodelFace (bedge_t *pedges, msurface_t *psurf)
 	surface_p->flags = psurf->flags;
 	surface_p->insubmodel = true;
 	surface_p->spanstate = 0;
-	surface_p->entity = currententity;
+	surface_p->entity = refsoft_currententity;
 	surface_p->key = r_currentbkey;
 	surface_p->spans = NULL;
 

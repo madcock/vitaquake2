@@ -593,7 +593,7 @@ void R_PolygonDrawSpans(espan_t *pspan, qboolean iswater )
 	s_spanletvars.pbase = cacheblock;
 
 	if ( iswater )
-		r_turb_turb = sintable + ((int)(r_newrefdef.time*SPEED)&(CYCLE-1));
+		r_turb_turb = sintable + ((int)(r_refsoft_newrefdef.time*SPEED)&(CYCLE-1));
 
 	sdivzspanletstepu = d_sdivzstepu * AFFINE_SPANLET_SIZE;
 	tdivzspanletstepu = d_tdivzstepu * AFFINE_SPANLET_SIZE;
@@ -970,7 +970,7 @@ void R_ClipAndDrawPoly( float alpha, qboolean isturbulent, qboolean textured )
 
 	for (i=0 ; i<nump ; i++)
 	{
-		VectorSubtract (pv, r_origin, local);
+		VectorSubtract (pv, r_refsoft_origin, local);
 		TransformVector (local, transformed);
 
 		if (transformed[2] < NEAR_CLIP)
@@ -1013,7 +1013,7 @@ void R_BuildPolygonFromSurface(msurface_t *fa)
 	r_polydesc.nump = 0;
 
 	// reconstruct the polygon
-	pedges = currentmodel->edges;
+	pedges = refsoft_currentmodel->edges;
 	lnumverts = fa->numedges;
 	vertpage = 0;
 
@@ -1021,17 +1021,17 @@ void R_BuildPolygonFromSurface(msurface_t *fa)
 
 	for (i=0 ; i<lnumverts ; i++)
 	{
-		lindex = currentmodel->surfedges[fa->firstedge + i];
+		lindex = refsoft_currentmodel->surfedges[fa->firstedge + i];
 
 		if (lindex > 0)
 		{
 			r_pedge = &pedges[lindex];
-			vec = currentmodel->vertexes[r_pedge->v[0]].position;
+			vec = refsoft_currentmodel->vertexes[r_pedge->v[0]].position;
 		}
 		else
 		{
 			r_pedge = &pedges[-lindex];
-			vec = currentmodel->vertexes[r_pedge->v[1]].position;
+			vec = refsoft_currentmodel->vertexes[r_pedge->v[1]].position;
 		}
 
 		VectorCopy (vec, pverts[i] );
@@ -1040,7 +1040,7 @@ void R_BuildPolygonFromSurface(msurface_t *fa)
 	VectorCopy( fa->texinfo->vecs[0], r_polydesc.vright );
 	VectorCopy( fa->texinfo->vecs[1], r_polydesc.vup );
 	VectorCopy( fa->plane->normal, r_polydesc.vpn );
-	VectorCopy( r_origin, r_polydesc.viewer_position );
+	VectorCopy( r_refsoft_origin, r_polydesc.viewer_position );
 
 	if ( fa->flags & SURF_PLANEBACK )
 	{
@@ -1075,7 +1075,7 @@ void R_BuildPolygonFromSurface(msurface_t *fa)
 	// scrolling texture addition
 	if (fa->texinfo->flags & SURF_FLOWING)
 	{
-		r_polydesc.s_offset += -128 * ( (r_newrefdef.time*0.25) - (int)(r_newrefdef.time*0.25) );
+		r_polydesc.s_offset += -128 * ( (r_refsoft_newrefdef.time*0.25) - (int)(r_refsoft_newrefdef.time*0.25) );
 	}
 
 	r_polydesc.nump = lnumverts;
@@ -1184,11 +1184,11 @@ void SWR_DrawAlphaSurfaces( void )
 {
 	msurface_t *s = r_alpha_surfaces;
 
-	currentmodel = r_worldmodel;
+	refsoft_currentmodel = r_refsoft_worldmodel;
 
-	modelorg[0] = -r_origin[0];
-	modelorg[1] = -r_origin[1];
-	modelorg[2] = -r_origin[2];
+	modelorg[0] = -r_refsoft_origin[0];
+	modelorg[1] = -r_refsoft_origin[1];
+	modelorg[2] = -r_refsoft_origin[2];
 
 	while ( s )
 	{
@@ -1213,7 +1213,7 @@ void R_IMFlatShadedQuad( vec3_t a, vec3_t b, vec3_t c, vec3_t d, int color, floa
 	vec3_t s0, s1;
 
 	r_polydesc.nump = 4;
-	VectorCopy( r_origin, r_polydesc.viewer_position );
+	VectorCopy( r_refsoft_origin, r_polydesc.viewer_position );
 
 	VectorCopy( a, r_clip_verts[0][0] );
 	VectorCopy( b, r_clip_verts[0][1] );

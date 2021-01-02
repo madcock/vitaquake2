@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // current entity info
 //
 qboolean		insubmodel;
-entity_t		*currententity;
+entity_t		*refsoft_currententity;
 vec3_t			modelorg;		// modelorg is the viewpoint reletive to
 								// the currently rendering entity
 vec3_t			r_entorigin;	// the currently rendering entity in world
@@ -82,7 +82,7 @@ void R_RotateBmodel (void)
 // TODO: share work with R_SetUpAliasTransform
 
 // yaw
-	angle = currententity->angles[YAW];		
+	angle = refsoft_currententity->angles[YAW];		
 	angle = angle * M_PI*2 / 360;
 	s = sin(angle);
 	c = cos(angle);
@@ -99,7 +99,7 @@ void R_RotateBmodel (void)
 
 
 // pitch
-	angle = currententity->angles[PITCH];		
+	angle = refsoft_currententity->angles[PITCH];		
 	angle = angle * M_PI*2 / 360;
 	s = sin(angle);
 	c = cos(angle);
@@ -117,7 +117,7 @@ void R_RotateBmodel (void)
 	R_ConcatRotations (temp2, temp1, temp3);
 
 // roll
-	angle = currententity->angles[ROLL];		
+	angle = refsoft_currententity->angles[ROLL];		
 	angle = angle * M_PI*2 / 360;
 	s = sin(angle);
 	c = cos(angle);
@@ -138,7 +138,7 @@ void R_RotateBmodel (void)
 // rotate modelorg and the transformation matrix
 //
 	R_EntityRotate (modelorg);
-	R_EntityRotate (vpn);
+	R_EntityRotate (refsoft_vpn);
 	R_EntityRotate (vright);
 	R_EntityRotate (vup);
 
@@ -304,10 +304,10 @@ void R_RecursiveClipBPoly (bedge_t *pedges, mnode_t *pnode, msurface_t *psurf)
 				{
 					if (pn->contents != CONTENTS_SOLID)
 					{
-						if (r_newrefdef.areabits)
+						if (r_refsoft_newrefdef.areabits)
 						{
 							area = ((mleaf_t *)pn)->area;
-							if (! (r_newrefdef.areabits[area>>3] & (1<<(area&7)) ) )
+							if (! (r_refsoft_newrefdef.areabits[area>>3] & (1<<(area&7)) ) )
 								continue;		// not visible
 						}
 
@@ -511,9 +511,9 @@ c_drawnode++;
 		pleaf = (mleaf_t *)node;
 
 		// check for door connected areas
-		if (r_newrefdef.areabits)
+		if (r_refsoft_newrefdef.areabits)
 		{
-			if (! (r_newrefdef.areabits[pleaf->area>>3] & (1<<(pleaf->area&7)) ) )
+			if (! (r_refsoft_newrefdef.areabits[pleaf->area>>3] & (1<<(pleaf->area&7)) ) )
 				return;		// not visible
 		}
 
@@ -568,7 +568,7 @@ c_drawnode++;
 
 		if (c)
 		{
-			surf = r_worldmodel->surfaces + node->firstsurface;
+			surf = r_refsoft_worldmodel->surfaces + node->firstsurface;
 
 			if (dot < -BACKFACE_EPSILON)
 			{
@@ -616,22 +616,22 @@ R_RenderWorld
 void R_RenderWorld (void)
 {
 
-	if (!r_drawworld->value)
+	if (!r_refsoft_drawworld->value)
 		return;
-	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
+	if ( r_refsoft_newrefdef.rdflags & RDF_NOWORLDMODEL )
 		return;
 
 	c_drawnode=0;
 
 	// auto cycle the world frame for texture animation
-	r_worldentity.frame = (int)(r_newrefdef.time*2);
-	currententity = &r_worldentity;
+	r_worldentity.frame = (int)(r_refsoft_newrefdef.time*2);
+	refsoft_currententity = &r_worldentity;
 
-	VectorCopy (r_origin, modelorg);
-	currentmodel = r_worldmodel;
-	r_pcurrentvertbase = currentmodel->vertexes;
+	VectorCopy (r_refsoft_origin, modelorg);
+	refsoft_currentmodel = r_refsoft_worldmodel;
+	r_pcurrentvertbase   = refsoft_currentmodel->vertexes;
 
-	SWR_RecursiveWorldNode (currentmodel->nodes, 15);
+	SWR_RecursiveWorldNode (refsoft_currentmodel->nodes, 15);
 }
 
 

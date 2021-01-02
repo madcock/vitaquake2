@@ -37,7 +37,7 @@ static unsigned char gammatable[256];
 
 cvar_t		*intensity;
 
-unsigned	d_8to24table[256];
+unsigned	d_refgl_8to24table[256];
 
 /* forward declarations */
 static void GL_LightScaleTexture (uint32_t *in, int inwidth,
@@ -175,7 +175,7 @@ qboolean GL_Upload8 (byte *data, int width, int height,  qboolean mipmap, qboole
 	for (i=0 ; i<s ; i++)
 	{
 		p = data[i];
-		trans[i] = d_8to24table[p];
+		trans[i] = d_refgl_8to24table[p];
 
 		if (p == 255)
 		{
@@ -194,9 +194,9 @@ qboolean GL_Upload8 (byte *data, int width, int height,  qboolean mipmap, qboole
 			else
 				p = 0;
 			/* copy RGB components */
-			((byte *)&trans[i])[0] = ((byte *)&d_8to24table[p])[0];
-			((byte *)&trans[i])[1] = ((byte *)&d_8to24table[p])[1];
-			((byte *)&trans[i])[2] = ((byte *)&d_8to24table[p])[2];
+			((byte *)&trans[i])[0] = ((byte *)&d_refgl_8to24table[p])[0];
+			((byte *)&trans[i])[1] = ((byte *)&d_refgl_8to24table[p])[1];
+			((byte *)&trans[i])[2] = ((byte *)&d_refgl_8to24table[p])[2];
 		}
 	}
 
@@ -238,12 +238,12 @@ void GL_TexEnv( GLenum mode )
 	}
 }
 
-extern	image_t	*draw_chars;
+extern	image_t	*refgl_draw_chars;
 
 void GL_Bind (int texnum)
 {
-   if (gl_nobind->value && draw_chars)		/* performance evaluation option */
-      texnum = draw_chars->texnum;
+   if (gl_nobind->value && refgl_draw_chars)		/* performance evaluation option */
+      texnum = refgl_draw_chars->texnum;
    if ( gl_state.currenttextures[gl_state.currenttmu] == texnum)
       return;
    gl_state.currenttextures[gl_state.currenttmu] = texnum;
@@ -486,7 +486,7 @@ void R_FloodFillSkin( byte *skin, int skinwidth, int skinheight )
 		filledcolor = 0;
 		/* attempt to find opaque black */
 		for (i = 0; i < 256; ++i)
-			if (d_8to24table[i] == (255 << 0)) /* alpha 1.0 */
+			if (d_refgl_8to24table[i] == (255 << 0)) /* alpha 1.0 */
 			{
 				filledcolor = i;
 				break;
@@ -726,7 +726,7 @@ image_t *GL_LoadPic (char *name, byte *pic, int width, int height, imagetype_t t
 	if (strlen(name) >= sizeof(image->name))
 		ri.Sys_Error (ERR_DROP, "Draw_LoadPic: \"%s\" is too long", name);
 	strcpy (image->name, name);
-	image->registration_sequence = registration_sequence;
+	image->registration_sequence = refgl_registration_sequence;
 
 	image->width = width;
 	image->height = height;
@@ -814,7 +814,7 @@ image_t	*GL_FindImage (char *name, imagetype_t type, bool force)
       {
          if (!strcmp(name, image->name))
          {
-            image->registration_sequence = registration_sequence;
+            image->registration_sequence = refgl_registration_sequence;
             return image;
          }
       }
@@ -898,12 +898,12 @@ void GL_FreeUnusedImages (void)
 	image_t	*image;
 
 	/* never free r_notexture or particle texture */
-	r_notexture->registration_sequence = registration_sequence;
-	r_particletexture->registration_sequence = registration_sequence;
+	r_notexture->registration_sequence       = refgl_registration_sequence;
+	r_particletexture->registration_sequence = refgl_registration_sequence;
 
 	for (i=0, image=gltextures ; i<numgltextures ; i++, image++)
 	{
-		if (image->registration_sequence == registration_sequence)
+		if (image->registration_sequence == refgl_registration_sequence)
 			continue;		/* used this sequence */
 		if (!image->registration_sequence)
 			continue;		/* free image_t slot */
@@ -942,10 +942,10 @@ int Draw_GetPalette (void)
 		b = pal[i*3+2];
 		
 		v = (255<<24) + (r<<0) + (g<<8) + (b<<16);
-		d_8to24table[i] = LittleLong(v);
+		d_refgl_8to24table[i] = LittleLong(v);
 	}
 
-	d_8to24table[255] &= LittleLong(0xffffff);	/* 255 is transparent */
+	d_refgl_8to24table[255] &= LittleLong(0xffffff);	/* 255 is transparent */
 
 	free (pic);
 	free (pal);
@@ -962,9 +962,9 @@ GL_InitImages
 void	GL_InitImages (void)
 {
 	int		i, j;
-	float	g = vid_gamma->value;
+	float	g = vid_refgl_gamma->value;
 
-	registration_sequence = 1;
+	refgl_registration_sequence = 1;
 
 	/* init intensity conversions */
 	intensity = ri.Cvar_Get ("intensity", "2", 0);
@@ -1156,5 +1156,5 @@ void restore_textures()
 	}
 	GL_ReloadPic((byte*)data, 32, r_notexture);
 	
-	GL_ReuploadImage(draw_chars);
+	GL_ReuploadImage(refgl_draw_chars);
 }

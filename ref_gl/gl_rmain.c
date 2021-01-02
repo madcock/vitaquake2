@@ -27,9 +27,7 @@ typedef struct
 
 void R_Clear (void);
 
-viddef_t	vid;
-
-refimport_t	ri;
+extern viddef_t	vid;
 
 model_t		*r_worldmodel;
 
@@ -46,8 +44,8 @@ model_t		*currentmodel;
 
 cplane_t	frustum[4];
 
-int			r_visframecount;	/* bumped when going to a new PVS */
-int			r_framecount;		/* used for dlight push checking */
+int			r_refgl_visframecount;	/* bumped when going to a new PVS */
+int			r_refgl_framecount;		/* used for dlight push checking */
 
 int			c_brush_polys, c_alias_polys;
 
@@ -60,9 +58,9 @@ void GL_Strings_f( void );
 /*
  * view origin
  */
-vec3_t	vup;
+vec3_t	gl_vup;
 vec3_t	vpn;
-vec3_t	vright;
+vec3_t	gl_vright;
 vec3_t	r_origin;
 
 float	r_world_matrix[16];
@@ -78,11 +76,11 @@ int		r_viewcluster, r_viewcluster2, r_oldviewcluster, r_oldviewcluster2;
 cvar_t	*r_norefresh;
 cvar_t	*r_drawentities;
 cvar_t	*r_drawworld;
-cvar_t	*r_speeds;
-cvar_t	*r_fullbright;
+static cvar_t	*r_speeds;
+cvar_t	*r_refgl_fullbright;
 cvar_t	*r_novis;
 cvar_t	*r_nocull;
-cvar_t	*r_lerpmodels;
+cvar_t	*r_refgl_lerpmodels;
 cvar_t	*r_lefthand;
 
 cvar_t	*r_lightlevel;	/* FIXME: This is a HACK to get the client's light level */
@@ -111,7 +109,7 @@ cvar_t	*gl_drawbuffer;
 cvar_t  *gl_driver;
 cvar_t	*gl_lightmap;
 cvar_t	*gl_shadows;
-cvar_t	*gl_mode;
+extern cvar_t	*gl_mode;
 cvar_t	*gl_dynamic;
 cvar_t  *gl_monolightmap;
 cvar_t	*gl_modulate;
@@ -137,8 +135,8 @@ cvar_t	*gl_lockpvs;
 cvar_t	*gl_3dlabs_broken;
 
 cvar_t	*vid_fullscreen;
-cvar_t	*vid_gamma;
-cvar_t	*vid_ref;
+cvar_t	*vid_refgl_gamma;
+extern cvar_t	*vid_ref;
 
 cvar_t  *gl_xflip;
 
@@ -207,8 +205,8 @@ void R_DrawSpriteModel (entity_t *e)
 	frame = &psprite->frames[e->frame];
 
 	/* normal sprite */
-	up = vup;
-	right = vright;
+	up    = gl_vup;
+	right = gl_vright;
 
 	if ( e->flags & RF_TRANSLUCENT )
 		alpha = e->alpha;
@@ -415,8 +413,8 @@ void GL_DrawParticles( int num_particles, const particle_t particles[], const un
 	qglEnable( GL_BLEND );
 	GL_TexEnv( GL_MODULATE );
 
-	VectorScale (vup, 1.5, up);
-	VectorScale (vright, 1.5, right);
+	VectorScale (gl_vup, 1.5, up);
+	VectorScale (gl_vright, 1.5, right);
 
 	float* pPos = gVertexBuffer;
 	float* pColor = gColorBuffer;
@@ -488,7 +486,7 @@ R_DrawParticles
 */
 void R_DrawParticles (void)
 {
-	GL_DrawParticles( r_newrefdef.num_particles, r_newrefdef.particles, d_8to24table );
+	GL_DrawParticles( r_newrefdef.num_particles, r_newrefdef.particles, d_refgl_8to24table );
 }
 
 /*
@@ -553,13 +551,13 @@ void R_SetFrustum (void)
 	int		i;
 
 	/* rotate VPN right by FOV_X/2 degrees */
-	RotatePointAroundVector( frustum[0].normal, vup, vpn, -(90-r_newrefdef.fov_x / 2 ) );
+	RotatePointAroundVector( frustum[0].normal, gl_vup, vpn, -(90-r_newrefdef.fov_x / 2 ) );
 	/* rotate VPN left by FOV_X/2 degrees */
-	RotatePointAroundVector( frustum[1].normal, vup, vpn, 90-r_newrefdef.fov_x / 2 );
+	RotatePointAroundVector( frustum[1].normal, gl_vup, vpn, 90-r_newrefdef.fov_x / 2 );
 	/* rotate VPN up by FOV_X/2 degrees */
-	RotatePointAroundVector( frustum[2].normal, vright, vpn, 90-r_newrefdef.fov_y / 2 );
+	RotatePointAroundVector( frustum[2].normal, gl_vright, vpn, 90-r_newrefdef.fov_y / 2 );
 	/* rotate VPN down by FOV_X/2 degrees */
-	RotatePointAroundVector( frustum[3].normal, vright, vpn, -( 90 - r_newrefdef.fov_y / 2 ) );
+	RotatePointAroundVector( frustum[3].normal, gl_vright, vpn, -( 90 - r_newrefdef.fov_y / 2 ) );
 
 	for (i=0 ; i<4 ; i++)
 	{
@@ -581,12 +579,12 @@ void R_SetupFrame (void)
 	int i;
 	mleaf_t	*leaf;
 
-	r_framecount++;
+	r_refgl_framecount++;
 
    /* build the transformation matrix for the given view angles */
 	VectorCopy (r_newrefdef.vieworg, r_origin);
 
-	AngleVectors (r_newrefdef.viewangles, vpn, vright, vup);
+	AngleVectors (r_newrefdef.viewangles, vpn, gl_vright, gl_vup);
 
    /* current viewcluster */
 	if ( !( r_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
@@ -930,12 +928,12 @@ void R_Register( void )
 {
 	r_lefthand = ri.Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	r_norefresh = ri.Cvar_Get ("r_norefresh", "0", 0);
-	r_fullbright = ri.Cvar_Get ("r_fullbright", "0", 0);
+	r_refgl_fullbright = ri.Cvar_Get ("r_fullbright", "0", 0);
 	r_drawentities = ri.Cvar_Get ("r_drawentities", "1", 0);
 	r_drawworld = ri.Cvar_Get ("r_drawworld", "1", 0);
 	r_novis = ri.Cvar_Get ("r_novis", "0", 0);
 	r_nocull = ri.Cvar_Get ("r_nocull", "0", 0);
-	r_lerpmodels = ri.Cvar_Get ("r_lerpmodels", "1", 0);
+	r_refgl_lerpmodels = ri.Cvar_Get ("r_lerpmodels", "1", 0);
 	r_speeds = ri.Cvar_Get ("r_speeds", "0", 0);
 
 	r_lightlevel = ri.Cvar_Get ("r_lightlevel", "0", 0);
@@ -1008,7 +1006,7 @@ void R_Register( void )
 	gl_3dlabs_broken = ri.Cvar_Get( "gl_3dlabs_broken", "1", CVAR_ARCHIVE );
 
 	vid_fullscreen = ri.Cvar_Get( "vid_fullscreen", "0", CVAR_ARCHIVE );
-	vid_gamma = ri.Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE );
+	vid_refgl_gamma = ri.Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE );
 	vid_ref = ri.Cvar_Get( "vid_ref", "soft", CVAR_ARCHIVE );
 	
 	gl_xflip = ri.Cvar_Get( "gl_xflip", "0", CVAR_ARCHIVE);
@@ -1190,16 +1188,16 @@ static void R_BeginFrame( float camera_separation )
 	** update 3Dfx gamma -- it is expected that a user will do a vid_restart
 	** after tweaking this value
 	*/
-	if ( vid_gamma->modified )
+	if ( vid_refgl_gamma->modified )
 	{
-		vid_gamma->modified = false;
+		vid_refgl_gamma->modified = false;
 
 		if ( gl_config.renderer & ( GL_RENDERER_VOODOO ) )
 		{
 			char envbuffer[1024];
 			float g;
 
-			g = 2.00 * ( 0.8 - ( vid_gamma->value - 0.5 ) ) + 1.0F;
+			g = 2.00 * ( 0.8 - ( vid_refgl_gamma->value - 0.5 ) ) + 1.0F;
 			Com_sprintf( envbuffer, sizeof(envbuffer), "SSTV2_GAMMA=%f", g );
 			putenv( envbuffer );
 			Com_sprintf( envbuffer, sizeof(envbuffer), "SST_GAMMA=%f", g );
@@ -1301,9 +1299,9 @@ void R_SetPalette ( const unsigned char *palette)
 	{
 		for ( i = 0; i < 256; i++ )
 		{
-			rp[i*4+0] = d_8to24table[i] & 0xff;
-			rp[i*4+1] = ( d_8to24table[i] >> 8 ) & 0xff;
-			rp[i*4+2] = ( d_8to24table[i] >> 16 ) & 0xff;
+			rp[i*4+0] = d_refgl_8to24table[i] & 0xff;
+			rp[i*4+1] = ( d_refgl_8to24table[i] >> 8 ) & 0xff;
+			rp[i*4+2] = ( d_refgl_8to24table[i] >> 16 ) & 0xff;
 			rp[i*4+3] = 0xff;
 		}
 	}
@@ -1357,9 +1355,9 @@ static void R_DrawBeam( entity_t *e )
 	qglEnable( GL_BLEND );
 	qglDepthMask( GL_FALSE );
 
-	r = ( d_8to24table[e->skinnum & 0xFF] ) & 0xFF;
-	g = ( d_8to24table[e->skinnum & 0xFF] >> 8 ) & 0xFF;
-	b = ( d_8to24table[e->skinnum & 0xFF] >> 16 ) & 0xFF;
+	r = ( d_refgl_8to24table[e->skinnum & 0xFF] ) & 0xFF;
+	g = ( d_refgl_8to24table[e->skinnum & 0xFF] >> 8 ) & 0xFF;
+	b = ( d_refgl_8to24table[e->skinnum & 0xFF] >> 16 ) & 0xFF;
 
 	r *= 1/255.0F;
 	g *= 1/255.0F;
@@ -1416,7 +1414,7 @@ refexport_t GetRefAPI (refimport_t rimp )
 {
 	refexport_t	re;
 
-	ri = rimp;
+	ri       = rimp;
 
 	re.api_version = API_VERSION;
 

@@ -29,7 +29,7 @@ typedef struct
 
 static vec3_t	modelorg;		/* relative to viewpoint */
 
-msurface_t	*r_alpha_surfaces;
+static msurface_t	*r_alpha_surfaces;
 
 #define DYNAMIC_LIGHT_WIDTH  128
 #define DYNAMIC_LIGHT_HEIGHT 128
@@ -265,7 +265,7 @@ static void R_BlendLightmaps (void)
    msurface_t	*surf, *newdrawsurf = 0;
 
    /* don't bother if we're set to fullbright */
-   if (r_fullbright->value)
+   if (r_refgl_fullbright->value)
       return;
    if (!r_worldmodel->lightdata)
       return;
@@ -475,7 +475,7 @@ static void R_RenderBrushPoly (msurface_t *fa)
 	}
 
 	/* dynamic this frame or dynamic previously */
-	if ( ( fa->dlightframe == r_framecount ) )
+	if ( ( fa->dlightframe == r_refgl_framecount ) )
 	{
 dynamic:
 		if ( gl_dynamic->value )
@@ -489,7 +489,7 @@ dynamic:
 
 	if ( is_dynamic )
 	{
-		if ( ( fa->styles[maps] >= 32 || fa->styles[maps] == 0 ) && ( fa->dlightframe != r_framecount ) )
+		if ( ( fa->styles[maps] >= 32 || fa->styles[maps] == 0 ) && ( fa->dlightframe != r_refgl_framecount ) )
 		{
 			unsigned	temp[34*34];
 			int			smax, tmax;
@@ -788,7 +788,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 	if (node->contents == CONTENTS_SOLID)
 		return;		/* solid */
 
-	if (node->visframe != r_visframecount)
+	if (node->visframe != r_refgl_visframecount)
 		return;
 	if (R_CullBox (node->minmaxs, node->minmaxs+3))
 		return;
@@ -812,7 +812,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 		{
 			do
 			{
-				(*mark)->visframe = r_framecount;
+				(*mark)->visframe = r_refgl_framecount;
 				mark++;
 			} while (--c);
 		}
@@ -858,7 +858,7 @@ void R_RecursiveWorldNode (mnode_t *node)
 	/* draw stuff */
 	for ( c = node->numsurfaces, surf = r_worldmodel->surfaces + node->firstsurface; c ; c--, surf++)
 	{
-		if (surf->visframe != r_framecount)
+		if (surf->visframe != r_refgl_framecount)
 			continue;
 
 		if ( (surf->flags & SURF_PLANEBACK) != sidebit )
@@ -960,7 +960,7 @@ void R_MarkLeaves (void)
 	if (gl_lockpvs->value)
 		return;
 
-	r_visframecount++;
+	r_refgl_visframecount++;
 	r_oldviewcluster = r_viewcluster;
 	r_oldviewcluster2 = r_viewcluster2;
 
@@ -968,9 +968,9 @@ void R_MarkLeaves (void)
 	{
 		/* mark everything */
 		for (i=0 ; i<r_worldmodel->numleafs ; i++)
-			r_worldmodel->leafs[i].visframe = r_visframecount;
+			r_worldmodel->leafs[i].visframe = r_refgl_visframecount;
 		for (i=0 ; i<r_worldmodel->numnodes ; i++)
-			r_worldmodel->nodes[i].visframe = r_visframecount;
+			r_worldmodel->nodes[i].visframe = r_refgl_visframecount;
 		return;
 	}
 
@@ -996,9 +996,9 @@ void R_MarkLeaves (void)
 			node = (mnode_t *)leaf;
 			do
 			{
-				if (node->visframe == r_visframecount)
+				if (node->visframe == r_refgl_visframecount)
 					break;
-				node->visframe = r_visframecount;
+				node->visframe = r_refgl_visframecount;
 				node = node->parent;
 			} while (node);
 		}
@@ -1234,7 +1234,7 @@ void GL_BeginBuildingLightmaps (model_t *m)
 
 	memset( gl_lms.allocated, 0, sizeof(gl_lms.allocated) );
 
-	r_framecount = 1;		/* no dlightcache */
+	r_refgl_framecount = 1;		/* no dlightcache */
 
 	/*
 	** setup the base lightstyles so the lightmaps won't have to be regenerated

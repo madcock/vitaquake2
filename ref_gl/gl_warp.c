@@ -27,14 +27,14 @@ typedef struct
 
 #include "gl_local.h"
 
-extern	model_t	*loadmodel;
+extern	model_t	*refgl_loadmodel;
 
-char	skyname[MAX_QPATH];
-float	skyrotate;
-vec3_t	skyaxis;
-image_t	*sky_images[6];
+static char	skyname[MAX_QPATH];
+static float	skyrotate;
+static vec3_t	skyaxis;
+static image_t	*sky_images[6];
 
-msurface_t	*warpface;
+static msurface_t	*warpface;
 
 #define	SUBDIVIDE_SIZE	64
 #if 0
@@ -185,12 +185,12 @@ void GL_SubdivideSurface (msurface_t *fa)
 	numverts = 0;
 	for (i=0 ; i<fa->numedges ; i++)
 	{
-		lindex = loadmodel->surfedges[fa->firstedge + i];
+		lindex = refgl_loadmodel->surfedges[fa->firstedge + i];
 
 		if (lindex > 0)
-			vec = loadmodel->vertexes[loadmodel->edges[lindex].v[0]].position;
+			vec = refgl_loadmodel->vertexes[refgl_loadmodel->edges[lindex].v[0]].position;
 		else
-			vec = loadmodel->vertexes[loadmodel->edges[-lindex].v[1]].position;
+			vec = refgl_loadmodel->vertexes[refgl_loadmodel->edges[-lindex].v[1]].position;
 		VectorCopy (vec, verts[numverts]);
 		numverts++;
 	}

@@ -188,7 +188,7 @@ int R_AliasCheckBBox (void)
 	/*
 	** non-lerping model
 	*/
-	if ( currententity->backlerp == 0 )
+	if ( refsoft_currententity->backlerp == 0 )
 	{
 		if ( ccodes[0] == BBOX_TRIVIAL_ACCEPT )
 			return BBOX_TRIVIAL_ACCEPT;
@@ -250,9 +250,9 @@ void R_AliasPreparePoints (void)
 	finalvert_t	*pfinalverts;
 
 //PGM
-	iractive = (r_newrefdef.rdflags & RDF_IRGOGGLES && currententity->flags & RF_IR_VISIBLE);
+	iractive = (r_refsoft_newrefdef.rdflags & RDF_IRGOGGLES && refsoft_currententity->flags & RF_IR_VISIBLE);
 //	iractive = 0;
-//	if(r_newrefdef.rdflags & RDF_IRGOGGLES && currententity->flags & RF_IR_VISIBLE)
+//	if(r_refsoft_newrefdef.rdflags & RDF_IRGOGGLES && refsoft_currententity->flags & RF_IR_VISIBLE)
 //		iractive = 1;
 //PGM
 
@@ -275,7 +275,7 @@ void R_AliasPreparePoints (void)
 	pstverts = (dstvert_t *)((byte *)s_pmdl + s_pmdl->ofs_st);
 	ptri = (dtriangle_t *)((byte *)s_pmdl + s_pmdl->ofs_tris);
 
-	if ( ( currententity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
+	if ( ( refsoft_currententity->flags & RF_WEAPONMODEL ) && ( r_refsoft_lefthand->value == 1.0F ) )
 	{
 		for (i=0 ; i<s_pmdl->num_tris ; i++, ptri++)
 		{
@@ -363,9 +363,9 @@ void R_AliasSetUpTransform (void)
 // TODO: should use a look-up table
 // TODO: could cache lazily, stored in the entity
 // 
-	angles[ROLL] = currententity->angles[ROLL];
-	angles[PITCH] = currententity->angles[PITCH];
-	angles[YAW] = currententity->angles[YAW];
+	angles[ROLL] = refsoft_currententity->angles[ROLL];
+	angles[PITCH] = refsoft_currententity->angles[PITCH];
+	angles[YAW] = refsoft_currententity->angles[YAW];
 	AngleVectors( angles, s_alias_forward, s_alias_right, s_alias_up );
 
 // TODO: can do this with simple matrix rearrangement
@@ -380,13 +380,13 @@ void R_AliasSetUpTransform (void)
 		aliasoldworldtransform[i][0] = aliasworldtransform[i][2] =  s_alias_up[i];
 	}
 
-	aliasworldtransform[0][3] = currententity->origin[0]-r_origin[0];
-	aliasworldtransform[1][3] = currententity->origin[1]-r_origin[1];
-	aliasworldtransform[2][3] = currententity->origin[2]-r_origin[2];
+	aliasworldtransform[0][3] = refsoft_currententity->origin[0]-r_refsoft_origin[0];
+	aliasworldtransform[1][3] = refsoft_currententity->origin[1]-r_refsoft_origin[1];
+	aliasworldtransform[2][3] = refsoft_currententity->origin[2]-r_refsoft_origin[2];
 
-	aliasoldworldtransform[0][3] = currententity->oldorigin[0]-r_origin[0];
-	aliasoldworldtransform[1][3] = currententity->oldorigin[1]-r_origin[1];
-	aliasoldworldtransform[2][3] = currententity->oldorigin[2]-r_origin[2];
+	aliasoldworldtransform[0][3] = refsoft_currententity->oldorigin[0]-r_refsoft_origin[0];
+	aliasoldworldtransform[1][3] = refsoft_currententity->oldorigin[1]-r_refsoft_origin[1];
+	aliasoldworldtransform[2][3] = refsoft_currententity->oldorigin[2]-r_refsoft_origin[2];
 
 // FIXME: can do more efficiently than full concatenation
 //	memcpy( rotationmatrix, t2matrix, sizeof( rotationmatrix ) );
@@ -397,7 +397,7 @@ void R_AliasSetUpTransform (void)
 	VectorCopy (vright, viewmatrix[0]);
 	VectorCopy (vup, viewmatrix[1]);
 	VectorInverse (viewmatrix[1]);
-	VectorCopy (vpn, viewmatrix[2]);
+	VectorCopy (refsoft_vpn, viewmatrix[2]);
 
 	viewmatrix[0][3] = 0;
 	viewmatrix[1][3] = 0;
@@ -407,13 +407,13 @@ void R_AliasSetUpTransform (void)
 
 	R_ConcatTransforms (viewmatrix, aliasworldtransform, aliastransform);
 
-	aliasworldtransform[0][3] = currententity->origin[0];
-	aliasworldtransform[1][3] = currententity->origin[1];
-	aliasworldtransform[2][3] = currententity->origin[2];
+	aliasworldtransform[0][3] = refsoft_currententity->origin[0];
+	aliasworldtransform[1][3] = refsoft_currententity->origin[1];
+	aliasworldtransform[2][3] = refsoft_currententity->origin[2];
 
-	aliasoldworldtransform[0][3] = currententity->oldorigin[0];
-	aliasoldworldtransform[1][3] = currententity->oldorigin[1];
-	aliasoldworldtransform[2][3] = currententity->oldorigin[2];
+	aliasoldworldtransform[0][3] = refsoft_currententity->oldorigin[0];
+	aliasoldworldtransform[1][3] = refsoft_currententity->oldorigin[1];
+	aliasoldworldtransform[2][3] = refsoft_currententity->oldorigin[2];
 }
 
 
@@ -439,7 +439,7 @@ void R_AliasTransformFinalVerts( int numpoints, finalvert_t *fv, dtrivertx_t *ol
 		plightnormal = r_avertexnormals[newv->lightnormalindex];
 
 		// PMM - added double damage shell
-		if ( currententity->flags & ( RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM) )
+		if ( refsoft_currententity->flags & ( RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM) )
 		{
 			lerped_vert[0] += plightnormal[0] * POWERSUIT_SCALE;
 			lerped_vert[1] += plightnormal[1] * POWERSUIT_SCALE;
@@ -520,19 +520,19 @@ static qboolean R_AliasSetupSkin (void)
 	int				skinnum;
 	image_t			*pskindesc;
 
-	if (currententity->skin)
-		pskindesc = currententity->skin;
+	if (refsoft_currententity->skin)
+		pskindesc = refsoft_currententity->skin;
 	else
 	{
-		skinnum = currententity->skinnum;
+		skinnum = refsoft_currententity->skinnum;
 		if ((skinnum >= s_pmdl->num_skins) || (skinnum < 0))
 		{
 			ri.Con_Printf (PRINT_ALL, "R_AliasSetupSkin %s: no such skin # %d\n", 
-				currentmodel->name, skinnum);
+				refsoft_currentmodel->name, skinnum);
 			skinnum = 0;
 		}
 
-		pskindesc = currentmodel->skins[skinnum];
+		pskindesc = refsoft_currentmodel->skins[skinnum];
 	}
 
 	if ( !pskindesc )
@@ -563,34 +563,34 @@ void R_AliasSetupLighting (void)
 	int				i, j;
 
 	// all components of light should be identical in software
-	if ( currententity->flags & RF_FULLBRIGHT )
+	if ( refsoft_currententity->flags & RF_FULLBRIGHT )
 	{
 		for (i=0 ; i<3 ; i++)
 			light[i] = 1.0;
 	}
 	else
 	{
-		SWR_LightPoint (currententity->origin, light);
+		SWR_LightPoint (refsoft_currententity->origin, light);
 	}
 
 	// save off light value for server to look at (BIG HACK!)
-	if ( currententity->flags & RF_WEAPONMODEL )
-		r_lightlevel->value = 150.0 * light[0];
+	if ( refsoft_currententity->flags & RF_WEAPONMODEL )
+		r_refsoft_lightlevel->value = 150.0 * light[0];
 
 
-	if ( currententity->flags & RF_MINLIGHT )
+	if ( refsoft_currententity->flags & RF_MINLIGHT )
 	{
 		for (i=0 ; i<3 ; i++)
 			if (light[i] < 0.1)
 				light[i] = 0.1;
 	}
 
-	if ( currententity->flags & RF_GLOW )
+	if ( refsoft_currententity->flags & RF_GLOW )
 	{	// bonus items will pulse with time
 		float	scale;
 		float	min;
 
-		scale = 0.1 * sin(r_newrefdef.time*7);
+		scale = 0.1 * sin(r_refsoft_newrefdef.time*7);
 		for (i=0 ; i<3 ; i++)
 		{
 			min = light[i] * 0.8;
@@ -647,19 +647,19 @@ R_AliasSetupFrames
 */
 void R_AliasSetupFrames( dmdl_t *pmdl )
 {
-	int thisframe = currententity->frame;
-	int lastframe = currententity->oldframe;
+	int thisframe = refsoft_currententity->frame;
+	int lastframe = refsoft_currententity->oldframe;
 
 	if ( ( thisframe >= pmdl->num_frames ) || ( thisframe < 0 ) )
 	{
 		ri.Con_Printf (PRINT_ALL, "R_AliasSetupFrames %s: no such thisframe %d\n", 
-			currentmodel->name, thisframe);
+			refsoft_currentmodel->name, thisframe);
 		thisframe = 0;
 	}
 	if ( ( lastframe >= pmdl->num_frames ) || ( lastframe < 0 ) )
 	{
 		ri.Con_Printf (PRINT_ALL, "R_AliasSetupFrames %s: no such lastframe %d\n", 
-			currentmodel->name, lastframe);
+			refsoft_currentmodel->name, lastframe);
 		lastframe = 0;
 	}
 
@@ -686,12 +686,12 @@ void R_AliasSetUpLerpData( dmdl_t *pmdl, float backlerp )
 	/*
 	** convert entity's angles into discrete vectors for R, U, and F
 	*/
-	AngleVectors (currententity->angles, vectors[0], vectors[1], vectors[2]);
+	AngleVectors (refsoft_currententity->angles, vectors[0], vectors[1], vectors[2]);
 
 	/*
 	** translation is the vector from last position to this position
 	*/
-	VectorSubtract (currententity->oldorigin, currententity->origin, translation);
+	VectorSubtract (refsoft_currententity->oldorigin, refsoft_currententity->origin, translation);
 
 	/*
 	** move should be the delta back to the previous frame * backlerp
@@ -728,16 +728,16 @@ void R_AliasDrawModel (void)
 	extern void R_PolysetDrawSpansConstant8_33( void * );
 	extern void R_PolysetDrawSpansConstant8_66( void * );
 
-	s_pmdl = (dmdl_t *)currentmodel->extradata;
+	s_pmdl = (dmdl_t *)refsoft_currentmodel->extradata;
 
-	if ( r_lerpmodels->value == 0 )
-		currententity->backlerp = 0;
+	if ( r_refsoft_lerpmodels->value == 0 )
+		refsoft_currententity->backlerp = 0;
 
-	if ( currententity->flags & RF_WEAPONMODEL )
+	if ( refsoft_currententity->flags & RF_WEAPONMODEL )
 	{
-		if ( r_lefthand->value == 1.0F )
+		if ( r_refsoft_lefthand->value == 1.0F )
 			aliasxscale = -aliasxscale;
-		else if ( r_lefthand->value == 2.0F )
+		else if ( r_refsoft_lefthand->value == 2.0F )
 			return;
 	}
 
@@ -752,7 +752,7 @@ void R_AliasDrawModel (void)
 	// trivial accept status
 	if ( R_AliasCheckBBox() == BBOX_TRIVIAL_REJECT )
 	{
-		if ( ( currententity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
+		if ( ( refsoft_currententity->flags & RF_WEAPONMODEL ) && ( r_refsoft_lefthand->value == 1.0F ) )
 		{
 			aliasxscale = -aliasxscale;
 		}
@@ -763,7 +763,7 @@ void R_AliasDrawModel (void)
 	if ( !R_AliasSetupSkin () )
 	{
 		ri.Con_Printf( PRINT_ALL, "R_AliasDrawModel %s: NULL skin found\n",
-			currentmodel->name);
+			refsoft_currentmodel->name);
 		return;
 	}
 
@@ -775,12 +775,12 @@ void R_AliasDrawModel (void)
 	*/
 	// PMM - added double damage shell
 	// PMM - reordered to handle blending
-	if ( currententity->flags & ( RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM) )
+	if ( refsoft_currententity->flags & ( RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM) )
 	{
 		int		color;
 
 		// PMM - added double
-		color = currententity->flags & ( RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM);
+		color = refsoft_currententity->flags & ( RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE | RF_SHELL_HALF_DAM);
 		// PMM - reordered, old code first
 /*
 		if ( color == RF_SHELL_RED )
@@ -830,16 +830,16 @@ void R_AliasDrawModel (void)
 			r_aliasblendcolor = SHELL_WHITE_COLOR;
 
 
-		if ( currententity->alpha > 0.33 )
+		if ( refsoft_currententity->alpha > 0.33 )
 			d_pdrawspans = R_PolysetDrawSpansConstant8_66;
 		else
 			d_pdrawspans = R_PolysetDrawSpansConstant8_33;
 	}
-	else if ( currententity->flags & RF_TRANSLUCENT )
+	else if ( refsoft_currententity->flags & RF_TRANSLUCENT )
 	{
-		if ( currententity->alpha > 0.66 )
+		if ( refsoft_currententity->alpha > 0.66 )
 			d_pdrawspans = R_PolysetDrawSpans8_Opaque;
-		else if ( currententity->alpha > 0.33 )
+		else if ( refsoft_currententity->alpha > 0.33 )
 			d_pdrawspans = R_PolysetDrawSpans8_66;
 		else
 			d_pdrawspans = R_PolysetDrawSpans8_33;
@@ -852,16 +852,16 @@ void R_AliasDrawModel (void)
 	/*
 	** compute this_frame and old_frame addresses
 	*/
-	R_AliasSetUpLerpData( s_pmdl, currententity->backlerp );
+	R_AliasSetUpLerpData( s_pmdl, refsoft_currententity->backlerp );
 
-	if (currententity->flags & RF_DEPTHHACK)
+	if (refsoft_currententity->flags & RF_DEPTHHACK)
 		s_ziscale = (float)0x8000 * (float)0x10000 * 3.0;
 	else
 		s_ziscale = (float)0x8000 * (float)0x10000;
 
 	R_AliasPreparePoints ();
 
-	if ( ( currententity->flags & RF_WEAPONMODEL ) && ( r_lefthand->value == 1.0F ) )
+	if ( ( refsoft_currententity->flags & RF_WEAPONMODEL ) && ( r_refsoft_lefthand->value == 1.0F ) )
 	{
 		aliasxscale = -aliasxscale;
 	}

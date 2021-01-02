@@ -94,10 +94,10 @@ void D_ViewChanged (void)
 	/*
 	** clear Z-buffer and color-buffers if we're doing the gallery
 	*/
-	if ( r_newrefdef.rdflags & RDF_NOWORLDMODEL )
+	if ( r_refsoft_newrefdef.rdflags & RDF_NOWORLDMODEL )
 	{
 		memset( d_pzbuffer, 0xff, vid.width * vid.height * sizeof( d_pzbuffer[0] ) );
-		SWR_Draw_Fill( r_newrefdef.x, r_newrefdef.y, r_newrefdef.width, r_newrefdef.height,( int ) sw_clearcolor->value & 0xff );
+		SWR_Draw_Fill( r_refsoft_newrefdef.x, r_refsoft_newrefdef.y, r_refsoft_newrefdef.width, r_refsoft_newrefdef.height,( int ) sw_clearcolor->value & 0xff );
 	}
 
 	alias_colormap = vid.colormap;
@@ -179,9 +179,9 @@ void R_TransformFrustum (void)
 		v[1] = -screenedge[i].normal[0];
 		v[2] = screenedge[i].normal[1];
 
-		v2[0] = v[1]*vright[0] + v[2]*vup[0] + v[0]*vpn[0];
-		v2[1] = v[1]*vright[1] + v[2]*vup[1] + v[0]*vpn[1];
-		v2[2] = v[1]*vright[2] + v[2]*vup[2] + v[0]*vpn[2];
+		v2[0] = v[1]*vright[0] + v[2]*vup[0] + v[0]*refsoft_vpn[0];
+		v2[1] = v[1]*vright[1] + v[2]*vup[1] + v[0]*refsoft_vpn[1];
+		v2[2] = v[1]*vright[2] + v[2]*vup[2] + v[0]*refsoft_vpn[2];
 
 		VectorCopy (v2, view_clipplanes[i].normal);
 
@@ -199,7 +199,7 @@ void TransformVector (vec3_t in, vec3_t out)
 {
 	out[0] = DotProduct(in,vright);
 	out[1] = DotProduct(in,vup);
-	out[2] = DotProduct(in,vpn);		
+	out[2] = DotProduct(in,refsoft_vpn);		
 }
 
 /*
@@ -211,7 +211,7 @@ void R_TransformPlane (mplane_t *p, float *normal, float *dist)
 {
 	float	d;
 	
-	d = DotProduct (r_origin, p->normal);
+	d = DotProduct (r_refsoft_origin, p->normal);
 	*dist = p->dist - d;
 // TODO: when we have rotating entities, this will need to use the view matrix
 	TransformVector (p->normal, normal);
@@ -265,8 +265,8 @@ void R_ViewChanged (vrect_t *vr)
 
 	r_refdef.vrect = *vr;
 
-	r_refdef.horizontalFieldOfView = 2*tan((float)r_newrefdef.fov_x/360*M_PI);;
-	verticalFieldOfView = 2*tan((float)r_newrefdef.fov_y/360*M_PI);
+	r_refdef.horizontalFieldOfView = 2*tan((float)r_refsoft_newrefdef.fov_x/360*M_PI);;
+	verticalFieldOfView = 2*tan((float)r_refsoft_newrefdef.fov_y/360*M_PI);
 
 	r_refdef.fvrectx = (float)r_refdef.vrect.x;
 	r_refdef.fvrectx_adj = (float)r_refdef.vrect.x - 0.5;
@@ -370,18 +370,18 @@ void SWR_SetupFrame (void)
 
 // build the transformation matrix for the given view angles
 	VectorCopy (r_refdef.vieworg, modelorg);
-	VectorCopy (r_refdef.vieworg, r_origin);
+	VectorCopy (r_refdef.vieworg, r_refsoft_origin);
 
-	AngleVectors (r_refdef.viewangles, vpn, vright, vup);
+	AngleVectors (r_refdef.viewangles, refsoft_vpn, vright, vup);
 
 // current viewleaf
-	if ( !( r_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
+	if ( !( r_refsoft_newrefdef.rdflags & RDF_NOWORLDMODEL ) )
 	{
-		r_viewleaf    = SWR_Mod_PointInLeaf (r_origin, r_worldmodel);
-		r_viewcluster = r_viewleaf->cluster;
+		r_viewleaf    = SWR_Mod_PointInLeaf (r_refsoft_origin, r_refsoft_worldmodel);
+		r_refsoft_viewcluster = r_viewleaf->cluster;
 	}
 
-	if (sw_waterwarp->value && (r_newrefdef.rdflags & RDF_UNDERWATER) )
+	if (sw_waterwarp->value && (r_refsoft_newrefdef.rdflags & RDF_UNDERWATER) )
 		r_dowarp = true;
 	else
 		r_dowarp = false;
@@ -390,18 +390,18 @@ void SWR_SetupFrame (void)
 	{	// warp into off screen buffer
 		vrect.x = 0;
 		vrect.y = 0;
-		vrect.width = r_newrefdef.width < WARP_WIDTH ? r_newrefdef.width : WARP_WIDTH;
-		vrect.height = r_newrefdef.height < WARP_HEIGHT ? r_newrefdef.height : WARP_HEIGHT;
+		vrect.width = r_refsoft_newrefdef.width < WARP_WIDTH ? r_refsoft_newrefdef.width : WARP_WIDTH;
+		vrect.height = r_refsoft_newrefdef.height < WARP_HEIGHT ? r_refsoft_newrefdef.height : WARP_HEIGHT;
 
 		d_viewbuffer = r_warpbuffer;
 		r_screenwidth = WARP_WIDTH;
 	}
 	else
 	{
-		vrect.x = r_newrefdef.x;
-		vrect.y = r_newrefdef.y;
-		vrect.width = r_newrefdef.width;
-		vrect.height = r_newrefdef.height;
+		vrect.x = r_refsoft_newrefdef.x;
+		vrect.y = r_refsoft_newrefdef.y;
+		vrect.width = r_refsoft_newrefdef.width;
+		vrect.height = r_refsoft_newrefdef.height;
 
 		d_viewbuffer = (void *)vid.buffer;
 		r_screenwidth = vid.rowbytes;
@@ -414,7 +414,7 @@ void SWR_SetupFrame (void)
 	R_SetUpFrustumIndexes ();
 
 // save base values
-	VectorCopy (vpn, base_vpn);
+	VectorCopy (refsoft_vpn, base_vpn);
 	VectorCopy (vright, base_vright);
 	VectorCopy (vup, base_vup);
 

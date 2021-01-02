@@ -27,7 +27,7 @@ typedef struct
 
 #include "gl_local.h"
 
-image_t		*draw_chars;
+image_t		*refgl_draw_chars;
 
 /*
 ===============
@@ -37,8 +37,8 @@ Draw_InitLocal
 void Draw_InitLocal (void)
 {
 	/* load console characters (don't bilerp characters) */
-	draw_chars = GL_FindImage ("pics/conchars.pcx", it_pic, false);
-	GL_Bind( draw_chars->texnum );
+	refgl_draw_chars = GL_FindImage ("pics/conchars.pcx", it_pic, false);
+	GL_Bind( refgl_draw_chars->texnum );
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	qglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 }
@@ -101,7 +101,7 @@ void Draw_Char (int x, int y, int num, float factor)
 	fcol = col*0.0625;
 	size = 0.0625;
 
-	GL_Bind (draw_chars->texnum);
+	GL_Bind (refgl_draw_chars->texnum);
 	
 	DrawQuad(x, y, 8 * factor, 8 * factor, fcol, frow, size, size);
 
@@ -249,7 +249,7 @@ void Draw_Fill (int x, int y, int w, int h, int c)
 	if ( (unsigned)c > 255)
 		ri.Sys_Error (ERR_FATAL, "Draw_Fill: bad color");
 
-	color.c = d_8to24table[c];
+	color.c = d_refgl_8to24table[c];
 	
 	DrawQuad_NoTex(x, y, w, h, (color.v[0]) / 255.0f, (color.v[1]) / 255.0f, (color.v[2]) / 255.0f, 1.0f);
 	

@@ -56,8 +56,8 @@ void D_WarpScreen (void)
 	//
 	// these are constant over resolutions, and can be saved
 	//
-	w = r_newrefdef.width;
-	h = r_newrefdef.height;
+	w = r_refsoft_newrefdef.width;
+	h = r_refsoft_newrefdef.height;
 	if (w != cached_width || h != cached_height)
 	{
 		if (w > allocated_width) {
@@ -85,8 +85,8 @@ void D_WarpScreen (void)
 		}
 	}
 
-	turb = intsintable + ((int)(r_newrefdef.time*SPEED)&(CYCLE-1));
-	dest = vid.buffer + r_newrefdef.y * vid.rowbytes + r_newrefdef.x;
+	turb = intsintable + ((int)(r_refsoft_newrefdef.time*SPEED)&(CYCLE-1));
+	dest = vid.buffer + r_refsoft_newrefdef.y * vid.rowbytes + r_refsoft_newrefdef.x;
 
 	for (v=0 ; v<h ; v++, dest += vid.rowbytes)
 	{
@@ -133,7 +133,7 @@ void Turbulent8 (espan_t *pspan)
 	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
 	float			sdivz16stepu, tdivz16stepu, zi16stepu;
 	
-	r_turb_turb = sintable + ((int)(r_newrefdef.time*SPEED)&(CYCLE-1));
+	r_turb_turb = sintable + ((int)(r_refsoft_newrefdef.time*SPEED)&(CYCLE-1));
 
 	r_turb_sstep = 0;	// keep compiler happy
 	r_turb_tstep = 0;	// ditto
@@ -268,7 +268,7 @@ void NonTurbulent8 (espan_t *pspan)
 	float			sdivz, tdivz, zi, z, du, dv, spancountminus1;
 	float			sdivz16stepu, tdivz16stepu, zi16stepu;
 	
-//	r_turb_turb = sintable + ((int)(r_newrefdef.time*SPEED)&(CYCLE-1));
+//	r_turb_turb = sintable + ((int)(r_refsoft_newrefdef.time*SPEED)&(CYCLE-1));
 	r_turb_turb = blanktable;
 
 	r_turb_sstep = 0;	// keep compiler happy

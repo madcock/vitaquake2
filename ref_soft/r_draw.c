@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "r_local.h"
 
 
-image_t		*draw_chars;				// 8*8 graphic characters
+static image_t		*rsoft_draw_chars;				// 8*8 graphic characters
 
 //=============================================================================
 
@@ -57,7 +57,7 @@ SWR_Draw_InitLocal
 */
 void SWR_Draw_InitLocal (void)
 {
-	draw_chars = SWR_Draw_FindPic ("conchars");
+	rsoft_draw_chars = SWR_Draw_FindPic ("conchars");
 }
 
 
@@ -99,7 +99,7 @@ void SWR_Draw_Char (int x, int y, int num, float scale)
 
 	row = num>>4;
 	col = num&15;
-	source = draw_chars->pixels[0] + (row<<10) + (col<<3);
+	source = rsoft_draw_chars->pixels[0] + (row<<10) + (col<<3);
 
 	if (y < 0)
 	{	// clipped

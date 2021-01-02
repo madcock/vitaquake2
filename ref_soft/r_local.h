@@ -517,7 +517,7 @@ extern int      *intsintable;
 extern int		*blanktable;		// PGM
 
 extern  vec3_t  vup, base_vup;
-extern  vec3_t  vpn, base_vpn;
+extern  vec3_t  refsoft_vpn, base_vpn;
 extern  vec3_t  vright, base_vright;
 
 extern  surf_t  *surfaces, *surface_p, *surf_max;
@@ -565,17 +565,15 @@ extern cvar_t   *sw_waterwarp;
 extern cvar_t   *sw_texfilt;
 
 extern cvar_t   *r_fullbright;
-extern cvar_t	*r_lefthand;
-extern cvar_t   *r_drawentities;
-extern cvar_t   *r_drawworld;
+extern cvar_t	*r_refsoft_lefthand;
+extern cvar_t   *r_refsoft_drawworld;
 extern cvar_t   *r_dspeeds;
-extern cvar_t   *r_lerpmodels;
+extern cvar_t   *r_refsoft_lerpmodels;
 
 extern cvar_t   *r_speeds;
 
-extern cvar_t   *r_lightlevel;  //FIXME HACK
+extern cvar_t   *r_refsoft_lightlevel;  //FIXME HACK
 
-extern cvar_t	*vid_fullscreen;
 extern	cvar_t	*vid_gamma;
 
 
@@ -591,11 +589,11 @@ void R_RenderWorld (void);
 
 extern  mplane_t        screenedge[4];
 
-extern  vec3_t  r_origin;
+extern  vec3_t  r_refsoft_origin;
 
 extern	entity_t	r_worldentity;
-extern  model_t         *currentmodel;
-extern  entity_t                *currententity;
+extern  model_t         *refsoft_currentmodel;
+extern  entity_t                *refsoft_currententity;
 extern  vec3_t  modelorg;
 extern  vec3_t  r_entorigin;
 
@@ -719,14 +717,14 @@ extern int              r_maxsurfsseen, r_maxedgesseen, r_cnumsurfs;
 extern qboolean r_surfsonstack;
 
 extern	mleaf_t		*r_viewleaf;
-extern	int			r_viewcluster, r_oldviewcluster;
+extern	int			r_refsoft_viewcluster, r_refsoft_oldviewcluster;
 
 extern int              r_clipflags;
-extern int              r_dlightframecount;
+extern int              r_refsoft_dlightframecount;
 extern qboolean r_fov_greater_than_90;
 
 extern  image_t         *r_notexture_mip;
-extern  model_t         *r_worldmodel;
+extern  model_t         *r_refsoft_worldmodel;
 
 void R_PrintAliasStats (void);
 void R_PrintTimes (void);
@@ -739,7 +737,7 @@ void R_EmitEdge (mvertex_t *pv0, mvertex_t *pv1);
 void R_ClipEdge (mvertex_t *pv0, mvertex_t *pv1, clipplane_t *clip);
 void R_SplitEntityOnNode2 (mnode_t *node);
 
-extern  refdef_t        r_newrefdef;
+extern  refdef_t        r_refsoft_newrefdef;
 
 extern  surfcache_t     *sc_rover, *sc_base;
 
@@ -774,7 +772,7 @@ void    SWR_Draw_FadeScreen (void);
 
 void	R_CinematicSetPalette( const unsigned char *palette );
 
-extern unsigned d_8to24table[256]; // base
+extern unsigned d_refsoft_8to24table[256]; // base
 
 void    Sys_MakeCodeWriteable (unsigned long startaddr, unsigned long length);
 void    Sys_SetFPCW (void);

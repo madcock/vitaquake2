@@ -804,7 +804,7 @@ void R_PolysetDrawSpans8_Opaque (spanpackage_t *pspanpackage)
 				if ((lzi >> 16) >= *lpz)
 				{
 //PGM
-					if(r_newrefdef.rdflags & RDF_IRGOGGLES && currententity->flags & RF_IR_VISIBLE)
+					if(r_refsoft_newrefdef.rdflags & RDF_IRGOGGLES && refsoft_currententity->flags & RF_IR_VISIBLE)
 						*lpdest = ((byte *)vid.colormap)[irtable[*lptex]];
 					else
 					*lpdest = ((byte *)vid.colormap)[*lptex + (llight & 0xFF00)];

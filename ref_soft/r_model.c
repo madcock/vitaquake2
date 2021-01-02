@@ -32,17 +32,17 @@ void Mod_LoadBrushModel (model_t *mod, void *buffer);
 void Mod_LoadAliasModel (model_t *mod, void *buffer);
 model_t *Mod_LoadModel (model_t *mod, qboolean crash);
 
-byte	mod_novis[MAX_MAP_LEAFS/8];
+static byte	mod_novis[MAX_MAP_LEAFS/8];
 
 #define	MAX_MOD_KNOWN	256
-model_t	mod_known[MAX_MOD_KNOWN];
-int		mod_numknown;
+static model_t	mod_known[MAX_MOD_KNOWN];
+static int		mod_numknown;
 
 // the inline * models from the current map are kept seperate
-model_t	mod_inline[MAX_MOD_KNOWN];
+static model_t	mod_inline[MAX_MOD_KNOWN];
 
-int		registration_sequence;
-int		modfilelen;
+int		refsoft_registration_sequence;
+static int		modfilelen;
 
 //===============================================================================
 
@@ -102,7 +102,7 @@ static model_t *SWR_Mod_ForName (char *name, qboolean crash)
 	if (name[0] == '*')
 	{
 		i = atoi(name+1);
-		if (i < 1 || !r_worldmodel || i >= r_worldmodel->numsubmodels)
+		if (i < 1 || !r_refsoft_worldmodel || i >= r_refsoft_worldmodel->numsubmodels)
 			ri.Sys_Error (ERR_DROP, "bad inline model number");
 		return &mod_inline[i];
 	}
@@ -281,7 +281,7 @@ byte *SWR_Mod_ClusterPVS (int cluster, model_t *model)
 ===============================================================================
 */
 
-byte	*mod_base;
+static byte	*mod_base;
 
 
 /*
@@ -1123,8 +1123,8 @@ void SWR_BeginRegistration (char *model)
 	char	fullname[MAX_QPATH];
 	cvar_t	*flushmap;
 
-	registration_sequence++;
-	r_oldviewcluster = -1;		// force markleafs
+	refsoft_registration_sequence++;
+	r_refsoft_oldviewcluster = -1;		// force markleafs
 	Com_sprintf (fullname, sizeof(fullname), "maps/%s.bsp", model);
 
 	D_FlushCaches ();
@@ -1133,7 +1133,7 @@ void SWR_BeginRegistration (char *model)
 	flushmap = ri.Cvar_Get ("flushmap", "0", 0);
 	if ( strcmp(mod_known[0].name, fullname) || flushmap->value)
 		SWR_Mod_Free(&mod_known[0]);
-	r_worldmodel = SWR_RegisterModel (fullname);
+	r_refsoft_worldmodel = SWR_RegisterModel (fullname);
 	R_NewMap ();
 }
 
@@ -1153,7 +1153,7 @@ struct model_s *SWR_RegisterModel (char *name)
 
 	if (mod)
 	{
-		mod->registration_sequence = registration_sequence;
+		mod->registration_sequence = refsoft_registration_sequence;
 
 		// register any images used by the models
 		if (mod->type == mod_sprite)
@@ -1174,7 +1174,7 @@ struct model_s *SWR_RegisterModel (char *name)
 		else if (mod->type == mod_brush)
 		{
 			for (i=0 ; i<mod->numtexinfo ; i++)
-				mod->texinfo[i].image->registration_sequence = registration_sequence;
+				mod->texinfo[i].image->registration_sequence = refsoft_registration_sequence;
 		}
 	}
 	return mod;
@@ -1195,7 +1195,7 @@ void SWR_EndRegistration (void)
 	{
 		if (!mod->name[0])
 			continue;
-		if (mod->registration_sequence != registration_sequence)
+		if (mod->registration_sequence != refsoft_registration_sequence)
 		{	// don't need this model
 			Hunk_Free (mod->extradata);
 			memset (mod, 0, sizeof(*mod));

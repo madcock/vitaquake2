@@ -109,7 +109,7 @@ static image_t *SWR_LoadPic (char *name, byte *pic, int width, int height, image
 	if (strlen(name) >= sizeof(image->name))
 		ri.Sys_Error (ERR_DROP, "Draw_LoadPic: \"%s\" is too long", name);
 	strcpy (image->name, name);
-	image->registration_sequence = registration_sequence;
+	image->registration_sequence = refsoft_registration_sequence;
 
 	image->width = width;
 	image->height = height;
@@ -153,7 +153,7 @@ image_t *R_LoadWal (char *name)
 	image->width = LittleLong (mt->width);
 	image->height = LittleLong (mt->height);
 	image->type = it_wall;
-	image->registration_sequence = registration_sequence;
+	image->registration_sequence = refsoft_registration_sequence;
 
 	size = image->width*image->height * (256+64+16+4)/256;
 	image->pixels[0] = malloc (size);
@@ -195,7 +195,7 @@ image_t	*R_FindImage (char *name, imagetype_t type)
 	{
 		if (!strcmp(name, image->name))
 		{
-			image->registration_sequence = registration_sequence;
+			image->registration_sequence = refsoft_registration_sequence;
 			return image;
 		}
 	}
@@ -257,7 +257,7 @@ void R_FreeUnusedImages (void)
 
 	for (i=0, image=r_images ; i<numr_images ; i++, image++)
 	{
-		if (image->registration_sequence == registration_sequence)
+		if (image->registration_sequence == refsoft_registration_sequence)
 		{
 			Com_PageInMemory ((byte *)image->pixels[0], image->width*image->height);
 			continue;		// used this sequence
@@ -281,7 +281,7 @@ R_InitImages
 */
 void	R_InitImages (void)
 {
-	registration_sequence = 1;
+	refsoft_registration_sequence = 1;
 }
 
 /*

@@ -251,7 +251,7 @@ void GL_DrawAliasFrameLerp (dmdl_t *paliashdr, float backlerp)
 GL_DrawAliasShadow
 =============
 */
-extern	vec3_t			lightspot;
+extern	vec3_t			gl_lightspot;
 
 void GL_DrawAliasShadow (dmdl_t *paliashdr, int posenum)
 {
@@ -259,7 +259,7 @@ void GL_DrawAliasShadow (dmdl_t *paliashdr, int posenum)
    float* pPos;
    vec3_t	point;
    int		count;
-   float lheight = currententity->origin[2] - lightspot[2];
+   float lheight = currententity->origin[2] - gl_lightspot[2];
 #if 0
    daliasframe_t *frame = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames 
          + currententity->frame * paliashdr->framesize);
@@ -736,7 +736,7 @@ void R_DrawAliasModel (entity_t *e)
 		currententity->oldframe = 0;
 	}
 
-	if ( !r_lerpmodels->value )
+	if ( !r_refgl_lerpmodels->value )
 		currententity->backlerp = 0;
 	GL_DrawAliasFrameLerp (paliashdr, currententity->backlerp);
 

@@ -57,6 +57,8 @@ static const bool enable_opengl = false;
 #endif
 extern cvar_t *sw_texfilt;
 
+refimport_t ri;
+
 /* TODO/FIXME - should become float for better accuracy */
 int      framerate    = 60;
 unsigned framerate_ms = 16;
@@ -1954,7 +1956,7 @@ void SNDDMA_BeginPainting(void)
 
 /* vid.c */
 
-extern viddef_t vid;
+viddef_t vid;
 
 #define REF_OPENGL  0
 
@@ -1962,9 +1964,9 @@ cvar_t *vid_ref;
 extern cvar_t *vid_fullscreen;
 extern cvar_t *vid_gamma;
 
-cvar_t *gl_picmip;
+extern cvar_t *gl_picmip;
 cvar_t *gl_mode;
-cvar_t *gl_driver;
+extern cvar_t *gl_driver;
 
 extern void M_ForceMenuOff( void );
 
@@ -2136,31 +2138,31 @@ static void CancelChanges( void *unused )
 
 void    VID_Init (void)
 {
-   refimport_t ri;
+   refimport_t _ri;
 
    viddef.width = scr_width;
    viddef.height = scr_height;
 
-   ri.Cmd_AddCommand = Cmd_AddCommand;
-   ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
-   ri.Cmd_Argc = Cmd_Argc;
-   ri.Cmd_Argv = Cmd_Argv;
-   ri.Cmd_ExecuteText = Cbuf_ExecuteText;
-   ri.Con_Printf = VID_Printf;
-   ri.Sys_Error = VID_Error;
-   ri.FS_LoadFile = FS_LoadFile;
-   ri.FS_FreeFile = FS_FreeFile;
-   ri.FS_Gamedir = FS_Gamedir;
-   ri.Vid_NewWindow = VID_NewWindow;
-   ri.Cvar_Get = Cvar_Get;
-   ri.Cvar_Set = Cvar_Set;
-   ri.Cvar_SetValue = Cvar_SetValue;
-   ri.Vid_GetModeInfo = VID_GetModeInfo;
-   ri.Vid_MenuInit = VID_MenuInit;
+   _ri.Cmd_AddCommand = Cmd_AddCommand;
+   _ri.Cmd_RemoveCommand = Cmd_RemoveCommand;
+   _ri.Cmd_Argc = Cmd_Argc;
+   _ri.Cmd_Argv = Cmd_Argv;
+   _ri.Cmd_ExecuteText = Cbuf_ExecuteText;
+   _ri.Con_Printf = VID_Printf;
+   _ri.Sys_Error = VID_Error;
+   _ri.FS_LoadFile = FS_LoadFile;
+   _ri.FS_FreeFile = FS_FreeFile;
+   _ri.FS_Gamedir = FS_Gamedir;
+   _ri.Vid_NewWindow = VID_NewWindow;
+   _ri.Cvar_Get = Cvar_Get;
+   _ri.Cvar_Set = Cvar_Set;
+   _ri.Cvar_SetValue = Cvar_SetValue;
+   _ri.Vid_GetModeInfo = VID_GetModeInfo;
+   _ri.Vid_MenuInit = VID_MenuInit;
 
-   if (is_soft_render) re = SWR_GetRefAPI(ri);
+   if (is_soft_render) re = SWR_GetRefAPI(_ri);
 #ifdef HAVE_OPENGL
-   else re = GetRefAPI(ri);
+   else re = GetRefAPI(_ri);
 #endif
    if (re.api_version != API_VERSION)
       Com_Error (ERR_FATAL, "Re has incompatible api_version");

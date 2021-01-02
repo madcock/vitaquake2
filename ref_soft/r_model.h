@@ -250,6 +250,6 @@ void SWR_Mod_Modellist_f (void);
 void SWR_Mod_FreeAll (void);
 void SWR_Mod_Free (model_t *mod);
 
-extern	int		registration_sequence;
+extern	int		refsoft_registration_sequence;
 
 #endif	// __MODEL__

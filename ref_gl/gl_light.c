@@ -26,7 +26,7 @@ typedef struct
 
 #include "gl_local.h"
 
-int	r_dlightframecount;
+static int	r_dlightframecount;
 
 #define	DLIGHT_CUTOFF	64
 
@@ -96,7 +96,7 @@ void R_RenderDlights (void)
 	if (!gl_flashblend->value)
 		return;
 
-	r_dlightframecount = r_framecount + 1;	/* because the count hasn't */
+	r_dlightframecount = r_refgl_framecount + 1;	/* because the count hasn't */
 											/*  advanced yet for this frame */
 	qglDepthMask (GL_FALSE);
 	qglDisableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -192,7 +192,7 @@ void R_PushDlights (void)
 	if (gl_flashblend->value)
 		return;
 
-	r_dlightframecount = r_framecount + 1;	/* because the count hasn't */
+	r_dlightframecount = r_refgl_framecount + 1;	/* because the count hasn't */
 											/*  advanced yet for this frame */
 	l = r_newrefdef.dlights;
 	for (i=0 ; i<r_newrefdef.num_dlights ; i++, l++)
@@ -208,9 +208,9 @@ LIGHT SAMPLING
 =============================================================================
 */
 
-vec3_t			pointcolor;
-cplane_t		*lightplane;		/* used as shadow plane */
-vec3_t			lightspot;
+static vec3_t			pointcolor;
+static cplane_t		*lightplane;		/* used as shadow plane */
+vec3_t			     gl_lightspot;
 
 static int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 {
@@ -254,7 +254,7 @@ static int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
       return -1;		/* didn't hit anything */
 
    /* check for impact on this node */
-   VectorCopy (mid, lightspot);
+   VectorCopy (mid, gl_lightspot);
    lightplane = plane;
 
    surf = r_worldmodel->surfaces + node->firstsurface;
@@ -593,7 +593,7 @@ void R_BuildLightMap (msurface_t *surf, byte *dest, int stride)
    }
 
    /* add all the dynamic lights */
-   if (surf->dlightframe == r_framecount)
+   if (surf->dlightframe == r_refgl_framecount)
       R_AddDynamicLights (surf);
 
    /* put into texture format */

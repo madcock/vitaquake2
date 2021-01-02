@@ -71,7 +71,7 @@ static image_t *SWR_TextureAnimation (mtexinfo_t *tex)
 	if (!tex->next)
 		return tex->image;
 
-	c = currententity->frame % tex->numframes;
+	c = refsoft_currententity->frame % tex->numframes;
 	while (c)
 	{
 		tex = tex->next;
@@ -575,10 +575,10 @@ surfcache_t *D_CacheSurface (msurface_t *surface, int miplevel)
 // if the surface is animating or flashing, flush the cache
 //
 	r_drawsurf.image       = SWR_TextureAnimation (surface->texinfo);
-	r_drawsurf.lightadj[0] = r_newrefdef.lightstyles[surface->styles[0]].white*128;
-	r_drawsurf.lightadj[1] = r_newrefdef.lightstyles[surface->styles[1]].white*128;
-	r_drawsurf.lightadj[2] = r_newrefdef.lightstyles[surface->styles[2]].white*128;
-	r_drawsurf.lightadj[3] = r_newrefdef.lightstyles[surface->styles[3]].white*128;
+	r_drawsurf.lightadj[0] = r_refsoft_newrefdef.lightstyles[surface->styles[0]].white*128;
+	r_drawsurf.lightadj[1] = r_refsoft_newrefdef.lightstyles[surface->styles[1]].white*128;
+	r_drawsurf.lightadj[2] = r_refsoft_newrefdef.lightstyles[surface->styles[2]].white*128;
+	r_drawsurf.lightadj[3] = r_refsoft_newrefdef.lightstyles[surface->styles[3]].white*128;
 	
 //
 // see if the cache holds apropriate data

@@ -137,8 +137,8 @@ extern	image_t		*r_notexture;
 extern	image_t		*r_particletexture;
 extern	entity_t	*currententity;
 extern	model_t		*currentmodel;
-extern	int			r_visframecount;
-extern	int			r_framecount;
+extern	int			r_refgl_visframecount;
+extern	int			r_refgl_framecount;
 extern	cplane_t	frustum[4];
 extern	int			c_brush_polys, c_alias_polys;
 
@@ -163,11 +163,10 @@ extern	cvar_t	*r_norefresh;
 extern	cvar_t	*r_lefthand;
 extern	cvar_t	*r_drawentities;
 extern	cvar_t	*r_drawworld;
-extern	cvar_t	*r_speeds;
-extern	cvar_t	*r_fullbright;
+extern	cvar_t	*r_refgl_fullbright;
 extern	cvar_t	*r_novis;
 extern	cvar_t	*r_nocull;
-extern	cvar_t	*r_lerpmodels;
+extern	cvar_t	*r_refgl_lerpmodels;
 
 extern	cvar_t	*r_lightlevel;	// FIXME: This is a HACK to get the client's light level
 
@@ -222,7 +221,7 @@ extern  cvar_t  *gl_lockpvs;
 extern  cvar_t  *gl_xflip;
 
 extern	cvar_t	*vid_fullscreen;
-extern	cvar_t	*vid_gamma;
+extern	cvar_t	*vid_refgl_gamma;
 
 extern	cvar_t		*intensity;
 
@@ -251,9 +250,9 @@ void R_PushDlights (void);
 
 extern	model_t	*r_worldmodel;
 
-extern	unsigned	d_8to24table[256];
+extern	unsigned	d_refgl_8to24table[256];
 
-extern	int		registration_sequence;
+extern	int		refgl_registration_sequence;
 
 
 void V_AddBlend (float r, float g, float b, float a, float *v_blend);

@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 
-int	r_dlightframecount;
+int	r_refsoft_dlightframecount;
 
 
 /*
@@ -70,13 +70,13 @@ static void SWR_MarkLights (dlight_t *light, int bit, mnode_t *node)
 	}
 		
    /* mark the polygons */
-	surf = r_worldmodel->surfaces + node->firstsurface;
+	surf = r_refsoft_worldmodel->surfaces + node->firstsurface;
 	for (i=0 ; i<node->numsurfaces ; i++, surf++)
 	{
-		if (surf->dlightframe != r_dlightframecount)
+		if (surf->dlightframe != r_refsoft_dlightframecount)
 		{
 			surf->dlightbits = 0;
-			surf->dlightframe = r_dlightframecount;
+			surf->dlightframe = r_refsoft_dlightframecount;
 		}
 		surf->dlightbits |= bit;
 	}
@@ -96,8 +96,8 @@ void SWR_PushDlights (model_t *model)
 	int		i;
 	dlight_t	*l;
 
-	r_dlightframecount = r_framecount;
-	for (i=0, l = r_newrefdef.dlights ; i<r_newrefdef.num_dlights ; i++, l++)
+	r_refsoft_dlightframecount = r_framecount;
+	for (i=0, l = r_refsoft_newrefdef.dlights ; i<r_refsoft_newrefdef.num_dlights ; i++, l++)
 	{
 		SWR_MarkLights ( l, 1<<i, 
             model->nodes + model->firstnode);
@@ -113,9 +113,9 @@ LIGHT SAMPLING
 =============================================================================
 */
 
-vec3_t	pointcolor;
-mplane_t		*lightplane;		/* used as shadow plane */
-vec3_t			lightspot;
+static vec3_t	pointcolor;
+static mplane_t		*lightplane;		/* used as shadow plane */
+static vec3_t			lightspot;
 
 int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 {
@@ -166,7 +166,7 @@ int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 	VectorCopy (mid, lightspot);
 	lightplane = plane;
 
-	surf = r_worldmodel->surfaces + node->firstsurface;
+	surf = r_refsoft_worldmodel->surfaces + node->firstsurface;
 	for (i=0 ; i<node->numsurfaces ; i++, surf++)
 	{
 		if (surf->flags&(SURF_DRAWTURB|SURF_DRAWSKY)) 
@@ -202,7 +202,7 @@ int RecursiveLightPoint (mnode_t *node, vec3_t start, vec3_t end)
 					maps++)
 			{
 				samp = *lightmap * /* 0.5 * */ (1.0/255);	/* adjust for gl scale */
-				scales = r_newrefdef.lightstyles[surf->styles[maps]].rgb;
+				scales = r_refsoft_newrefdef.lightstyles[surf->styles[maps]].rgb;
 				VectorMA (pointcolor, samp, scales, pointcolor);
 				lightmap += ((surf->extents[0]>>4)+1) *
 						((surf->extents[1]>>4)+1);
@@ -231,7 +231,7 @@ void SWR_LightPoint (vec3_t p, vec3_t color)
 	vec3_t		dist;
 	float		add;
 	
-	if (!r_worldmodel->lightdata)
+	if (!r_refsoft_worldmodel->lightdata)
 	{
 		color[0] = color[1] = color[2] = 1.0;
 		return;
@@ -241,7 +241,7 @@ void SWR_LightPoint (vec3_t p, vec3_t color)
 	end[1] = p[1];
 	end[2] = p[2] - 2048;
 	
-	r = RecursiveLightPoint (r_worldmodel->nodes, p, end);
+	r = RecursiveLightPoint (r_refsoft_worldmodel->nodes, p, end);
 	
 	if (r == -1)
 	{
@@ -256,10 +256,10 @@ void SWR_LightPoint (vec3_t p, vec3_t color)
 	 * add dynamic lights
 	 */
 	light = 0;
-	for (lnum=0 ; lnum<r_newrefdef.num_dlights ; lnum++)
+	for (lnum=0 ; lnum<r_refsoft_newrefdef.num_dlights ; lnum++)
 	{
-		dl = &r_newrefdef.dlights[lnum];
-		VectorSubtract (currententity->origin,
+		dl = &r_refsoft_newrefdef.dlights[lnum];
+		VectorSubtract (refsoft_currententity->origin,
 						dl->origin,
 						dist);
 		add = dl->intensity - VectorLength(dist);
@@ -300,12 +300,12 @@ static void SWR_AddDynamicLights (void)
 	tmax = (surf->extents[1]>>4)+1;
 	tex = surf->texinfo;
 
-	for (lnum=0 ; lnum<r_newrefdef.num_dlights ; lnum++)
+	for (lnum=0 ; lnum<r_refsoft_newrefdef.num_dlights ; lnum++)
 	{
 		if ( !(surf->dlightbits & (1<<lnum) ) )
 			continue;		/* not lit by this light */
 
-		dl = &r_newrefdef.dlights[lnum];
+		dl = &r_refsoft_newrefdef.dlights[lnum];
 		rad = dl->intensity;
 
       /*=====
@@ -401,7 +401,7 @@ void SWR_BuildLightMap (void)
 	tmax = (surf->extents[1]>>4)+1;
 	size = smax*tmax;
 
-	if (r_fullbright->value || !r_worldmodel->lightdata)
+	if (r_fullbright->value || !r_refsoft_worldmodel->lightdata)
 	{
 		for (i=0 ; i<size ; i++)
 			blocklights[i] = 0;

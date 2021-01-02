@@ -78,7 +78,7 @@ void SWR_DrawParticle( void )
 	/*
 	** transform the particle
 	*/
-	VectorSubtract (pparticle->origin, r_origin, local);
+	VectorSubtract (pparticle->origin, r_refsoft_origin, local);
 
 	transformed[0] = DotProduct(local, r_pright);
 	transformed[1] = DotProduct(local, r_pup);
@@ -198,9 +198,9 @@ void SWR_DrawParticles (void)
 
 	VectorScale( vright, xscaleshrink, r_pright );
 	VectorScale( vup, yscaleshrink, r_pup );
-	VectorCopy( vpn, r_ppn );
+	VectorCopy( refsoft_vpn, r_ppn );
 
-	for (p=r_newrefdef.particles, i=0 ; i<r_newrefdef.num_particles ; i++,p++)
+	for (p=r_refsoft_newrefdef.particles, i=0 ; i<r_refsoft_newrefdef.num_particles ; i++,p++)
 	{
 
 		if ( p->alpha > 0.66 )
