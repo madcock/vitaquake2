@@ -28,10 +28,10 @@ unsigned	d_8to24table[256];
 
 entity_t	r_worldentity;
 
-extern char		skyname[MAX_QPATH];
-extern float		skyrotate;
-extern vec3_t		skyaxis;
-extern image_t		*sky_images[6];
+char		skyname[MAX_QPATH];
+float		skyrotate;
+vec3_t		skyaxis;
+image_t		*sky_images[6];
 
 refdef_t	r_newrefdef;
 model_t		*currentmodel;
@@ -132,7 +132,7 @@ cvar_t	*r_drawworld;
 cvar_t	*r_drawentities;
 cvar_t	*r_dspeeds;
 cvar_t	*r_fullbright;
-extern cvar_t  *r_lerpmodels;
+cvar_t  *r_lerpmodels;
 cvar_t  *r_novis;
 
 cvar_t	*r_speeds;

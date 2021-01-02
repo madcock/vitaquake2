@@ -41,24 +41,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <glsm/glsm.h>
 #endif
 
-/* global variables - these were normally scattered 
- * across the various plugins (GL/softrend) */
-
-/* ----------------------------------------------- */
-
-image_t *draw_chars; /* 8x8 graphic characters */
-vec3_t lightspot;
-
-char skyname[MAX_QPATH];
-image_t *sky_images[6];
-vec3_t skyaxis;
-float skyrotate;
-msurface_t *r_alpha_surfaces;
-
-cvar_t *r_lerpmodels;
-
-/* ----------------------------------------------- */
-
 qboolean gl_set = false;
 bool is_soft_render = false;
 
