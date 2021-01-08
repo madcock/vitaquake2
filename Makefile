@@ -129,9 +129,12 @@ else ifneq (,$(findstring qnx,$(platform)))
 	CXX = QCC -Vgcc_ntoarmv7le
 else ifeq ($(platform), emscripten)
    TARGET := $(TARGET_NAME)_libretro_emscripten.bc
-   fpic := -fPIC
    CFLAGS += -D_XOPEN_SOURCE=700
-   SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
+   AR ?= emar
+   STATIC_LINKING = 1
+   ifneq ($(MEMORY),)
+      LDFLAGS += -s TOTAL_MEMORY=$(MEMORY)
+   endif
 else ifeq ($(platform), vita)
    TARGET := $(TARGET_NAME)_libretro_vita.a
    CC = arm-vita-eabi-gcc
