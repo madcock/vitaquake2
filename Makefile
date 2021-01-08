@@ -130,7 +130,7 @@ else ifneq (,$(findstring qnx,$(platform)))
 else ifeq ($(platform), emscripten)
    TARGET := $(TARGET_NAME)_libretro_emscripten.bc
    CFLAGS += -D_XOPEN_SOURCE=700
-   AR ?= emar
+   AR := emar
    STATIC_LINKING = 1
    ifneq ($(MEMORY),)
       LDFLAGS += -s TOTAL_MEMORY=$(MEMORY)
