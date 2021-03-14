@@ -33,9 +33,12 @@ ifeq ($(shell uname -a),)
 else ifneq ($(findstring Darwin,$(shell uname -a)),)
 	system_platform = osx
 	arch = intel
-ifeq ($(shell uname -p),powerpc)
-	arch = ppc
-endif
+        ifeq ($(shell uname -p),powerpc)
+	        arch = ppc
+        endif
+        ifeq ($(shell uname -p),arm)
+		arch = arm
+        endif
 else ifneq ($(findstring MINGW,$(shell uname -a)),)
 	system_platform = win
 endif
@@ -52,20 +55,6 @@ TARGET_NAME := vitaquake2
 endif
 LIBM		    = -lm
 
-ifeq ($(ARCHFLAGS),)
-ifeq ($(archs),ppc)
-   ARCHFLAGS = -arch ppc -arch ppc64
-else
-   ARCHFLAGS = -arch i386 -arch x86_64
-endif
-endif
-
-ifeq ($(platform), osx)
-ifndef ($(NOUNIVERSAL))
-   CXXFLAGS += $(ARCHFLAGS)
-   LFLAGS += $(ARCHFLAGS)
-endif
-endif
 
 ifeq ($(STATIC_LINKING), 1)
 EXT := a
@@ -103,24 +92,65 @@ else ifneq (,$(findstring osx,$(platform)))
    #HAVE_OPENGL = 1
    #GL_LIB := -framework OpenGL
    SHARED := -dynamiclib
+
+ifeq ($(UNIVERSAL),1)
+ifeq ($(archs),ppc)
+   ARCHFLAGS = -arch ppc -arch ppc64
+else ifeq ($(archs),arm64)
+   ARCHFLAGS = -arch x86_64 -arch arm64
+else
+   ARCHFLAGS = -arch i386 -arch x86_64
+endif
+   CXXFLAGS += $(ARCHFLAGS)
+   LFLAGS += $(ARCHFLAGS)
+endif
+
+   ifeq ($(CROSS_COMPILE),1)
+		TARGET_RULE   = -target $(LIBRETRO_APPLE_PLATFORM) -isysroot $(LIBRETRO_APPLE_ISYSROOT)
+		CFLAGS   += $(TARGET_RULE)
+		CPPFLAGS += $(TARGET_RULE)
+		CXXFLAGS += $(TARGET_RULE)
+		LDFLAGS  += $(TARGET_RULE)
+   endif
+
+	CFLAGS  += $(ARCHFLAGS)
+	CXXFLAGS  += $(ARCHFLAGS)
+	LDFLAGS += $(ARCHFLAGS)
+
 else ifneq (,$(findstring ios,$(platform)))
    TARGET := $(TARGET_NAME)_libretro_ios.dylib
-	fpic := -fPIC
-	SHARED := -dynamiclib
+   fpic := -fPIC
+   SHARED := -dynamiclib
+   MINVERSION :=
 
 ifeq ($(IOSSDK),)
    IOSSDK := $(shell xcodebuild -version -sdk iphoneos Path)
 endif
-
-	DEFINES := -DIOS
-	CC = cc -arch armv7 -isysroot $(IOSSDK)
-ifeq ($(platform),ios9)
-CC     += -miphoneos-version-min=8.0
-CXXFLAGS += -miphoneos-version-min=8.0
+   DEFINES := -DIOS
+ifeq ($(platform),ios-arm64)
+   CC = cc -arch arm64 -isysroot $(IOSSDK)
 else
-CC     += -miphoneos-version-min=5.0
-CXXFLAGS += -miphoneos-version-min=5.0
+   CC = cc -arch armv7 -isysroot $(IOSSDK)
 endif
+ifeq ($(platform),$(filter $(platform),ios9 ios-arm64))
+   MINVERSION = -miphoneos-version-min=8.0
+else
+   MINVERSION = -miphoneos-version-min=5.0
+endif
+   CFLAGS   += $(MINVERSION)
+   CXXFLAGS += $(MINVERSION)
+
+else ifeq ($(platform), tvos-arm64)
+   EXT?=dylib
+   TARGET := $(TARGET_NAME)_libretro_tvos.$(EXT)
+   fpic := -fPIC
+   SHARED := -dynamiclib
+   DEFINES := -DIOS
+ifeq ($(IOSSDK),)
+   IOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
+endif
+   CC = cc -arch arm64 -isysroot $(IOSSDK)
+
 else ifneq (,$(findstring qnx,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro_qnx.so
    fpic := -fPIC
@@ -141,7 +171,7 @@ else ifeq ($(platform), vita)
    AR = arm-vita-eabi-ar
    CFLAGS += -DVITA
    CXXFLAGS += -Wl,-q -Wall -O3
-	STATIC_LINKING = 1
+   STATIC_LINKING = 1
 else ifeq ($(platform), libnx)
     include $(DEVKITPRO)/libnx/switch_rules
     EXT=a
@@ -253,13 +283,11 @@ $(TARGET): $(OBJECTS)
 ifeq ($(STATIC_LINKING), 1)
 	$(AR) rcs $@ $(OBJECTS)
 else
-	@$(if $(Q), $(shell echo echo LD $@),)
-	$(Q)$(CC) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) $(LDFLAGS) $(GL_LIB)
+	$(CC) $(fpic) $(SHARED) $(INCLUDES) -o $@ $(OBJECTS) $(LDFLAGS) $(GL_LIB)
 endif
 
 %.o: %.c
-	@$(if $(Q), $(shell echo echo CC $<),)
-	$(Q)$(CC) $(CFLAGS) $(fpic) -c -o $@ $<
+	$(CC) $(CFLAGS) $(fpic) -c -o $@ $<
 
 clean:
 	rm -f $(OBJECTS) $(TARGET)
