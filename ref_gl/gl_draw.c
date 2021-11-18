@@ -265,12 +265,21 @@ Draw_FadeScreen
 
 ================
 */
-void Draw_FadeScreen (void)
+void Draw_FadeScreen (int transparent)
 {
+	/* TODO/FIXME: DrawQuad_NoTex() is currently
+	 * non-functional, so we have to ignore 'transparent'
+	 * and just clear the screen... */
+#if 0
 	qglEnable (GL_BLEND);
 	DrawQuad_NoTex(0, 0, vid.width, vid.height, 0, 0, 0, 0.8f);
 	qglColor4f (1,1,1,1);
 	qglDisable (GL_BLEND);
+#endif
+
+	qglClearColor ((float)0x0f / 255.0f, (float)0x0c / 255.0f, (float)0x07 / 255.0f, 1.0);
+	qglClear (GL_COLOR_BUFFER_BIT);
+	qglClearColor (1, 0, 0.5, 0.5);
 }
 
 

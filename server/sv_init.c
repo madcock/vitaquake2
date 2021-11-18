@@ -108,6 +108,7 @@ void SV_CreateBaseline (void)
 	}
 }
 
+extern char g_save_dir[1024];
 
 /*
 =================
@@ -116,9 +117,13 @@ SV_CheckForSavegame
 */
 void SV_CheckForSavegame (void)
 {
-	char		name[MAX_OSPATH];
-	FILE		*f;
-	int			i;
+	char     name[MAX_OSPATH];
+	FILE     *f;
+	int      i;
+	char     *savedir = g_save_dir;
+
+	if (g_save_dir[0] == '\0')
+		savedir = FS_Gamedir ();
 
 	if (sv_noreload->value)
 		return;
@@ -126,7 +131,7 @@ void SV_CheckForSavegame (void)
 	if (Cvar_VariableValue ("deathmatch"))
 		return;
 
-	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sav", FS_Gamedir(), sv.name);
+	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sav", savedir, sv.name);
 	f = fopen (name, "rb");
 	if (!f)
 		return;		// no savegame
@@ -431,7 +436,11 @@ void SV_Map (qboolean attractloop, char *levelstring, qboolean loadgame)
 
 	// skip the end-of-unit flag if necessary
 	if (level[0] == '*')
-		strcpy (level, level+1);
+	{
+		char tmp[MAX_QPATH];
+		strcpy (tmp, level+1);
+		strcpy (level, tmp);
+	}
 
 	l = strlen(level);
 	if (l > 4 && !strcmp (level+l-4, ".cin") )

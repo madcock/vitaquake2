@@ -383,8 +383,8 @@ MAIN MENU
 
 =======================================================================
 */
-#define	MAIN_ITEMS	5
-
+//#define	MAIN_ITEMS	5
+#define	MAIN_ITEMS	2
 
 void M_Main_Draw (void)
 {
@@ -396,12 +396,15 @@ void M_Main_Draw (void)
 	int totalheight = 0;
 	char litname[80];
 	float scale = SCR_GetMenuScale();
+	/* multiplayer, options and video menus
+	 * have no purpose when using the libretro
+	 * core build */
 	char *names[] =
 	{
 		"m_main_game",
-		"m_main_multiplayer",
-		"m_main_options",
-		"m_main_video",
+		//"m_main_multiplayer",
+		//"m_main_options",
+		//"m_main_video",
 		"m_main_quit",
 		0
 	};
@@ -464,23 +467,34 @@ const char *M_Main_Key (int key)
 
 		switch (m_main_cursor)
 		{
+		/* multiplayer, options and video menus
+		 * have no purpose when using the libretro
+		 * core build */
+		//case 0:
+			//M_Menu_Game_f ();
+			//break;
+
+		//case 1:
+			//M_Menu_Multiplayer_f();
+			//break;
+
+		//case 2:
+			//M_Menu_Options_f ();
+			//break;
+
+		//case 3:
+			//M_Menu_Video_f ();
+			//break;
+
+		//case 4:
+			//M_Menu_Quit_f ();
+			//break;
+
 		case 0:
 			M_Menu_Game_f ();
 			break;
 
 		case 1:
-			M_Menu_Multiplayer_f();
-			break;
-
-		case 2:
-			M_Menu_Options_f ();
-			break;
-
-		case 3:
-			M_Menu_Video_f ();
-			break;
-
-		case 4:
 			M_Menu_Quit_f ();
 			break;
 		}
@@ -2249,15 +2263,21 @@ static menuaction_s		s_loadgame_actions[MAX_SAVEGAMES];
 char		m_savestrings[MAX_SAVEGAMES][32];
 qboolean	m_savevalid[MAX_SAVEGAMES];
 
+extern char g_save_dir[1024];
+
 void Create_Savestrings (void)
 {
 	int		i;
 	FILE	*f;
 	char	name[MAX_OSPATH];
+	char  *savedir = g_save_dir;
+
+	if (g_save_dir[0] == '\0')
+		savedir = FS_Gamedir ();
 
 	for (i=0 ; i<MAX_SAVEGAMES ; i++)
 	{
-		Com_sprintf (name, sizeof(name), "%s/save/save%i/server.ssv", FS_Gamedir(), i);
+		Com_sprintf (name, sizeof(name), "%s/save/save%i/server.ssv", savedir, i);
 		f = fopen (name, "rb");
 		if (!f)
 		{
@@ -4357,9 +4377,9 @@ void M_Draw (void)
 
 	// dim everything behind it down
 	if (cl.cinematictime > 0)
-		re.DrawFill (0,0,viddef.width, viddef.height, 0);
+		re.DrawFadeScreen (0);
 	else
-		re.DrawFadeScreen ();
+		re.DrawFadeScreen (1);
 
 	m_drawfunc ();
 

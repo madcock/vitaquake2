@@ -1567,7 +1567,7 @@ void CL_InitLocal (void)
 //JASON this crashes out?
 }
 
-
+extern char g_save_dir[1024];
 
 /*
 ===============
@@ -1579,12 +1579,16 @@ Writes key bindings and archived cvars to config.cfg
 void CL_WriteConfiguration (void)
 {
 	FILE	*f;
-	char	path[MAX_QPATH];
+	char	path[1024];
+	char  *savedir = g_save_dir;
+
+	if (g_save_dir[0] == '\0')
+		savedir = FS_Gamedir ();
 
 	if (cls.state == ca_uninitialized)
 		return;
 
-	Com_sprintf (path, sizeof(path),"%s/config.cfg",FS_Gamedir());
+	Com_sprintf (path, sizeof(path),"%s/config.cfg",savedir);
 	f = fopen (path, "w");
 	if (!f)
 	{

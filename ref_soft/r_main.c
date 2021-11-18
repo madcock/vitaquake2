@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "r_local.h"
 
-extern viddef_t	vid;
+viddef_t	vid;
 
 unsigned	d_refsoft_8to24table[256];
 
@@ -277,6 +277,8 @@ extern cvar_t *gl_xflip;
 #else
 cvar_t *gl_xflip;
 #endif
+extern float libretro_gamma;
+
 void SWR_Register (void)
 {
 	sw_aliasstats = ri.Cvar_Get ("sw_polymodelstats", "0", 0);
@@ -307,7 +309,9 @@ void SWR_Register (void)
 	r_novis = ri.Cvar_Get( "r_novis", "0", 0 );
 
 	vid_fullscreen = ri.Cvar_Get( "vid_fullscreen", "0", CVAR_ARCHIVE );
+
 	vid_gamma = ri.Cvar_Get( "vid_gamma", "1.0", CVAR_ARCHIVE );
+	ri.Cvar_SetValue( "vid_gamma", libretro_gamma );
 
 	ri.Cmd_AddCommand ("modellist", SWR_Mod_Modellist_f);
 	ri.Cmd_AddCommand( "screenshot", R_ScreenShot_f );
@@ -1356,12 +1360,14 @@ static void Draw_GetPalette (void)
 	byte	*pal, *out;
 	int		i;
 	int		r, g, b;
+	int		width, height;
 
 	// get the palette and colormap
-	LoadPCX ("pics/colormap.pcx", &vid.colormap, &pal, NULL, NULL);
-	if (!vid.colormap)
+	LoadPCX ("pics/colormap.pcx", &vid.colormap, &pal, &width, &height);
+	if (!vid.colormap || ((width * height) < (256 * VID_GRADES) + (256 * 256)))
 		ri.Sys_Error (ERR_FATAL, "Couldn't load pics/colormap.pcx");
-	vid.alphamap = vid.colormap + 64*256;
+
+	vid.alphamap = vid.colormap + (256 * VID_GRADES);
 
 	out = (byte *)d_refsoft_8to24table;
 	for (i=0 ; i<256 ; i++, out+=4)
