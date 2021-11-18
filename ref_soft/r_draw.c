@@ -419,21 +419,26 @@ SWR_Draw_FadeScreen
 
 ================
 */
-void SWR_Draw_FadeScreen(void)
+void SWR_Draw_FadeScreen(int transparent)
 {
-	int			x, y;
-	byte		*pbuf;
-	int	t;
-
-	for (y = 0; y < vid.height; y++)
+	if (transparent)
 	{
-		pbuf = (byte *)(vid.buffer + vid.rowbytes*y);
-		t = (y & 1) << 1;
+		int   x, y;
+		byte  *pbuf;
+		int   t;
 
-		for (x=0 ; x<vid.width ; x++)
+		for (y = 0; y < vid.height; y++)
 		{
-			if ((x & 3) != t)
-				pbuf[x] = 0;
+			pbuf = (byte *)(vid.buffer + vid.rowbytes*y);
+			t = (y & 1) << 1;
+
+			for (x=0 ; x<vid.width ; x++)
+			{
+				if ((x & 3) != t)
+					pbuf[x] = 0;
+			}
 		}
 	}
+	else
+		SWR_Draw_Fill (0, 0, vid.width, vid.height, 0);
 }

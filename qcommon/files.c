@@ -766,6 +766,7 @@ char *FS_NextPath (char *prevpath)
 }
 
 extern char g_rom_dir[1024];
+extern char g_save_dir[1024];
 
 /*
 ================
@@ -790,6 +791,10 @@ void FS_InitFilesystem (void)
 	// start up with baseq2 by default
 	//
 	FS_AddGameDirectory (va("%s/"BASEDIRNAME, fs_basedir->string) );
+
+	// Add save directory to search paths
+	if (g_save_dir[0] != '\0')
+		FS_AddGameDirectory (g_save_dir);
 
 	// any set gamedirs will be freed up to here
 	fs_base_searchpaths = fs_searchpaths;

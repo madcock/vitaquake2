@@ -86,7 +86,7 @@ typedef struct
 	pixel_t                 *buffer;                // invisible buffer
 	pixel_t                 *colormap;              // 256 * VID_GRADES size
 	pixel_t                 *alphamap;              // 256 * 256 translucency map
-	int                             rowbytes;               // may be > width if displayed in a window
+	int                      rowbytes;              // may be > width if displayed in a window
 									// can be negative for stupid dibs
 	int						width;          
 	int						height;
@@ -768,7 +768,7 @@ void    SWR_Draw_StretchRaw (int x, int y, int w, int h, int cols, int rows, byt
 void    SWR_Draw_Char (int x, int y, int c, float scale);
 void    SWR_Draw_TileClear (int x, int y, int w, int h, char *name);
 void    SWR_Draw_Fill (int x, int y, int w, int h, int c);
-void    SWR_Draw_FadeScreen (void);
+void    SWR_Draw_FadeScreen (int transparent);
 
 void	R_CinematicSetPalette( const unsigned char *palette );
 

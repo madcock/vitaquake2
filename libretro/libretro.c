@@ -48,10 +48,12 @@ unsigned	sys_frame_time;
 uint64_t rumble_tick;
 void *tex_buffer = NULL;
 
+float libretro_gamma = 1.0f;
 #ifdef HAVE_OPENGL
 extern cvar_t *gl_shadows;
 static bool libretro_shared_context = false;
 static bool enable_opengl = true;
+float libretro_gl_modulate = 4.0f;
 #else
 static const bool enable_opengl = false;
 #endif
@@ -121,17 +123,18 @@ typedef struct api_entry{
 api_entry funcs[GL_FUNCS_NUM];
 #endif
 
-char g_rom_dir[1024], g_pak_path[1024], g_save_dir[1024];
+char g_rom_dir[1024] = {0};
+char g_save_dir[1024] = {0};
 
 #ifdef HAVE_OPENGL
 extern struct retro_hw_render_callback hw_render;
 
 #define MAX_INDICES 4096
-uint16_t* indices;
+uint16_t* indices = NULL;
 
-float *gVertexBufferPtr;
-float *gColorBufferPtr;
-float *gTexCoordBufferPtr;
+float *gVertexBufferPtr = NULL;
+float *gColorBufferPtr = NULL;
+float *gTexCoordBufferPtr = NULL;
 #endif
 
 static retro_log_printf_t log_cb;
@@ -146,17 +149,65 @@ static bool libretro_supports_bitmasks = false;
 
 static void audio_callback(void);
 
-#define SAMPLE_RATE   	48000
+#define SAMPLE_RATE  48000
 #define BUFFER_SIZE 	2048
-#define MAX_PADS 1
-static unsigned quake_devices[1];
 
 /* System analog stick range is -0x8000 to 0x8000 */
 #define ANALOG_RANGE 0x8000
 /* Default deadzone: 15% */
 static int analog_deadzone = (int)(0.15f * ANALOG_RANGE);
 
-#define GP_MAXBINDS 32
+typedef struct {
+	char *keyname;
+	int keynum;
+	char *command;
+} input_bind_t;
+
+static struct retro_input_descriptor input_desc[] = {
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,   "Open Inventory" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,     "Menu Up" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,   "Menu Down" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT,  "Use Inventory Item" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,      "Menu Cancel" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,      "Menu Select" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,      "Next Weapon" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,      "Run" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,      "Crouch / Descend" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,     "Jump / Climb" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,     "Attack" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,     "Drop Inventory Item" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT, "Show / Hide Help Computer" },
+	{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START,  "Show Menu" },
+	{ 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_X, "Strafe" },
+	{ 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,  RETRO_DEVICE_ID_ANALOG_Y, "Move" },
+	{ 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X, "Horizontal Turn" },
+	{ 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y, "Vertical Look" },
+	{ 0 },
+};
+
+/* Note: K_AUX1 and K_AUX4 are reserved for use
+ * in the menu - but we still have to bind them
+ * to *something*, otherwise the keys will be
+ * ignored (great design there...) */
+static input_bind_t input_binds[] = {
+	[RETRO_DEVICE_ID_JOYPAD_B]      = { "AUX4",       K_AUX4,       "" }, /* Menu Cancel */
+	[RETRO_DEVICE_ID_JOYPAD_Y]      = { "AUX2",       K_AUX2,       "weapnext" },
+	[RETRO_DEVICE_ID_JOYPAD_SELECT] = { "SELECT",     K_ENTER,      "help" },
+	[RETRO_DEVICE_ID_JOYPAD_START]  = { 0 },
+	[RETRO_DEVICE_ID_JOYPAD_UP]     = { "UPARROW",    K_UPARROW,    "invprev" },
+	[RETRO_DEVICE_ID_JOYPAD_DOWN]   = { "DOWNARROW",  K_DOWNARROW,  "invnext" },
+	[RETRO_DEVICE_ID_JOYPAD_LEFT]   = { "LEFTARROW",  K_LEFTARROW,  "inven" },
+	[RETRO_DEVICE_ID_JOYPAD_RIGHT]  = { "RIGHTARROW", K_RIGHTARROW, "invuse" },
+	[RETRO_DEVICE_ID_JOYPAD_A]      = { "AUX1",       K_AUX1,       "" }, /* Menu Select */
+	[RETRO_DEVICE_ID_JOYPAD_X]      = { 0 },
+	[RETRO_DEVICE_ID_JOYPAD_L]      = { "AUX3",       K_AUX3,       "+speed" },
+	[RETRO_DEVICE_ID_JOYPAD_R]      = { "AUX5",       K_AUX5,       "+movedown" },
+	[RETRO_DEVICE_ID_JOYPAD_L2]     = { "AUX6",       K_AUX6,       "+moveup" },
+	[RETRO_DEVICE_ID_JOYPAD_R2]     = { "AUX7",       K_AUX7,       "+attack" },
+	[RETRO_DEVICE_ID_JOYPAD_L3]     = { 0 },
+	[RETRO_DEVICE_ID_JOYPAD_R3]     = { "AUX8",       K_AUX8,       "invdrop" },
+};
+#define INPUT_BINDS_LEN (sizeof(input_binds) / sizeof(input_binds[0]))
 
 static bool context_needs_reinit = true;
 
@@ -263,7 +314,7 @@ void GLimp_EndFrame (void)
 
 qboolean GLimp_InitGL (void)
 {
-    int i;
+   int i;
 	indices = (uint16_t*)malloc(sizeof(uint16_t)*MAX_INDICES);
 	for (i=0;i<MAX_INDICES;i++){
 		indices[i] = i;
@@ -273,6 +324,27 @@ qboolean GLimp_InitGL (void)
 	gTexCoordBufferPtr = (float*)malloc(0x200000);
 	gl_set = true;
 	return true;
+}
+
+void GLimp_DeinitGL (void)
+{
+	if (indices)
+		free(indices);
+	indices = NULL;
+
+	if (gVertexBufferPtr)
+		free(gVertexBufferPtr);
+	gVertexBufferPtr = NULL;
+
+	if (gColorBufferPtr)
+		free(gColorBufferPtr);
+	gColorBufferPtr = NULL;
+
+	if (gTexCoordBufferPtr)
+		free(gTexCoordBufferPtr);
+	gTexCoordBufferPtr = NULL;
+
+	gl_set = false;
 }
 #endif
 
@@ -347,116 +419,6 @@ void destroy_opengl(void)
 }
 #endif
 
-typedef struct {
-   struct retro_input_descriptor desc[GP_MAXBINDS + 4];
-   struct {
-      char *key;
-      char *com;
-   } bind[GP_MAXBINDS];
-} gp_layout_t;
-
-gp_layout_t modern = {
-   {
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "Swim Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "Strafe Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Strafe Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Swim Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "Previous Weapon" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "Next Weapon" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "Jump" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "Fire" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,"Show Scores" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "Menu" },
-      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X, "Strafe" },
-      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y, "Move" },
-      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X, "Look horizontal" },
-      { 0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y, "Look vertical" },
-      { 0 },
-   },
-   {
-      {"JOY_LEFT",  "+moveleft"},     {"JOY_RIGHT", "+moveright"},
-      {"JOY_DOWN",  "+back"},         {"JOY_UP",    "+forward"},
-      {"JOY_B",     "+movedown"},     {"JOY_A",     "+moveright"},
-      {"JOY_X",     "+moveup"},       {"JOY_Y",     "+moveleft"},
-      {"JOY_L",     "impulse 12"},    {"JOY_R",     "impulse 10"},
-      {"JOY_L2",    "+jump"},         {"JOY_R2",    "+attack"},
-      {"JOY_SELECT","+showscores"},   {"JOY_START", "togglemenu"},
-      { 0 },
-   },
-};
-gp_layout_t classic = {
-
-   {
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "Jump" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "Cycle Weapon" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Freelook" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Fire" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "Strafe Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "Strafe Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "Look Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "Look Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,    "Move Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,    "Swim Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,"Toggle Run Mode" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "Menu" },
-      { 0 },
-   },
-   {
-      {"JOY_LEFT",  "+left"},         {"JOY_RIGHT", "+right"},
-      {"JOY_DOWN",  "+back"},         {"JOY_UP",    "+forward"},
-      {"JOY_B",     "+jump"} ,        {"JOY_A",     "impulse 10"},
-      {"JOY_X",     "+klook"},        {"JOY_Y",     "+attack"},
-      {"JOY_L",     "+moveleft"},     {"JOY_R",     "+moveright"},
-      {"JOY_L2",    "+lookup"},       {"JOY_R2",    "+lookdown"},
-      {"JOY_L3",    "+movedown"},     {"JOY_R3",    "+moveup"},
-      {"JOY_SELECT","+togglewalk"},   {"JOY_START", "togglemenu"},
-      { 0 },
-   },
-};
-gp_layout_t classic_alt = {
-
-   {
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT,  "D-Pad Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP,    "D-Pad Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN,  "D-Pad Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B,     "Look Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A,     "Look Right" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X,     "Look Up" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y,     "Look Left" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L,     "Jump" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R,     "Fire" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2,    "Run" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2,    "Next Weapon" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L3,    "Move Down" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R3,    "Previous Weapon" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT,"Toggle Run Mode" },
-      { 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START, "Menu" },
-      { 0 },
-   },
-   {
-      {"JOY_LEFT",  "+moveleft"},     {"JOY_RIGHT", "+moveright"},
-      {"JOY_DOWN",  "+back"},         {"JOY_UP",    "+forward"},
-      {"JOY_B",     "+lookdown"},     {"JOY_A",     "+right"},
-      {"JOY_X",     "+lookup"},       {"JOY_Y",     "+left"},
-      {"JOY_L",     "+jump"},         {"JOY_R",     "+attack"},
-      {"JOY_L2",    "+speed"},          {"JOY_R2",    "impulse 10"},
-      {"JOY_L3",    "+movedown"},     {"JOY_R3",    "impulse 12"},
-      {"JOY_SELECT","+togglewalk"},   {"JOY_START", "togglemenu"},
-      { 0 },
-   },
-};
-
-gp_layout_t *gp_layoutp = NULL;
-
 /* sys.c */
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -466,19 +428,12 @@ gp_layout_t *gp_layoutp = NULL;
 
 #include "errno.h"
 
-#define RETRO_DEVICE_MODERN  RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_ANALOG, 2)
-#define RETRO_DEVICE_JOYPAD_ALT  RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_JOYPAD, 1)
-
 int	curtime;
 char cmd_line[256];
 	
-int		hunkcount;
-
-static byte	*membase;
-static int		hunkmaxsize;
-static int		cursize;
-
-int isKeyboard;
+static byte	*membase    = NULL;
+static int  hunkmaxsize = 0;
+static int  cursize     = 0;
 
 bool shutdown_core = false;
 
@@ -711,6 +666,7 @@ void Sys_Quit (void)
 {
 	LOG_FILE("Sys_Quit called");
 	environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+	shutdown_core = true;
 }
 
 void Sys_UnloadGame (void)
@@ -742,26 +698,26 @@ void utf2ascii(char* dst, uint16_t* src){
 
 void Sys_DefaultConfig(void)
 {
+   char buf[100];
+   unsigned i;
+
 	Cbuf_AddText("unbindall\n");
-	
-	Cbuf_AddText ("bind UPARROW \"invuse\"\n");
-	Cbuf_AddText ("bind DOWNARROW \"inven\"\n");
-	Cbuf_AddText ("bind LEFTARROW \"invprev\"\n");
-	Cbuf_AddText ("bind RIGHTARROW \"invnext\"\n");
 
-	Cbuf_AddText ("bind AUX1 \"+moveup\"\n");
-	Cbuf_AddText ("bind AUX2 \"+movedown\"\n");
-	Cbuf_AddText ("bind AUX3 \"+attack\"\n");
-	Cbuf_AddText ("bind AUX4 \"weapnext\"\n");
-	Cbuf_AddText ("bind AUX5 \"+speed\"\n");
-	Cbuf_AddText ("bind AUX7 \"+attack\"\n");
+   for (i = 0; i < INPUT_BINDS_LEN; i++)
+   {
+		if (!input_binds[i].keyname)
+			continue;
 
-	Cbuf_AddText ("bind SELECT \"help\"\n");
-	
+      snprintf(buf, sizeof(buf),
+				"bind %s \"%s\"\n",
+				input_binds[i].keyname,
+				input_binds[i].command);
+
+      Cbuf_AddText (buf);
+   }
+
 	Cbuf_AddText ("lookstrafe \"1.000000\"\n");
 	Cbuf_AddText ("lookspring \"0.000000\"\n");
-	Cbuf_AddText ("vid_gamma \"0.700000\"\n");
-	
 }
 
 extern menufield_s s_maxclients_field;
@@ -770,23 +726,11 @@ void Sys_SetKeys(uint32_t keys, uint32_t state){
 	Key_Event(keys, state, Sys_Milliseconds());
 }
 
-#if 0
-static void keyboard_cb(bool down, unsigned keycode, uint32_t character, uint16_t mod)
-{
-	/* character-only events are discarded */
-	if (keycode != RETROK_UNKNOWN)
-   {
-      if (down)
-         Sys_SetKeys((uint32_t) keycode, 1);
-      else
-         Sys_SetKeys((uint32_t) keycode, 0);
-   }
-}
-#endif
+#define SET_BOUND_KEY(ret, id) Sys_SetKeys(input_binds[id].keynum, (ret & (1 << id)) ? 1 : 0)
 
 void Sys_SendKeyEvents (void)
 {
-	int port;
+	int16_t ret = 0;
 
 	if (!poll_cb)
 		return;
@@ -796,149 +740,66 @@ void Sys_SendKeyEvents (void)
 	if (!input_cb)
 		return;
 
-	for (port = 0; port < MAX_PADS; port++)
+	if (libretro_supports_bitmasks)
+		ret = input_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+	else
 	{
-		if (!input_cb)
-			break;
-
-		switch (quake_devices[port])
+		unsigned i;
+		for (i = RETRO_DEVICE_ID_JOYPAD_B; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
 		{
-		case RETRO_DEVICE_JOYPAD:
-		case RETRO_DEVICE_JOYPAD_ALT:
-		case RETRO_DEVICE_MODERN:
-		{
-			unsigned i;
-			int16_t ret    = 0;
-			if (libretro_supports_bitmasks)
-				ret = input_cb(port, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
-			else
-			{
-				for (i=RETRO_DEVICE_ID_JOYPAD_B; i <= RETRO_DEVICE_ID_JOYPAD_R3; ++i)
-				{
-					if (input_cb(port, RETRO_DEVICE_JOYPAD, 0, i))
-						ret |= (1 << i);
-				}
-			}
-
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_UP))
-				Sys_SetKeys(K_UPARROW, 1);
-			else
-				Sys_SetKeys(K_UPARROW, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_DOWN))
-				Sys_SetKeys(K_DOWNARROW, 1);
-			else
-				Sys_SetKeys(K_DOWNARROW, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_LEFT))
-				Sys_SetKeys(K_LEFTARROW, 1);
-			else
-				Sys_SetKeys(K_LEFTARROW, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_RIGHT))
-				Sys_SetKeys(K_RIGHTARROW, 1);
-			else
-				Sys_SetKeys(K_RIGHTARROW, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_START))
-				Sys_SetKeys(K_ESCAPE, 1);
-			else
-				Sys_SetKeys(K_ESCAPE, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_SELECT))
-				Sys_SetKeys(K_ENTER, 1);
-			else
-				Sys_SetKeys(K_ENTER, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_Y))
-				Sys_SetKeys(K_AUX3, 1);
-			else
-				Sys_SetKeys(K_AUX3, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_X))
-				Sys_SetKeys(K_AUX4, 1);
-			else
-				Sys_SetKeys(K_AUX4, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_B))
-			{
-				Sys_SetKeys(K_AUX1, 1);
-			}
-			else
-			{
-				Sys_SetKeys(K_AUX1, 0);
-			}
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_A))
-				Sys_SetKeys(K_AUX2, 1);
-			else
-				Sys_SetKeys(K_AUX2, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_L))
-				Sys_SetKeys(K_AUX5, 1);
-			else
-				Sys_SetKeys(K_AUX5, 0);
-			if (ret & (1 << RETRO_DEVICE_ID_JOYPAD_R))
-				Sys_SetKeys(K_AUX7, 1);
-			else
-				Sys_SetKeys(K_AUX7, 0);
-		}
-		break;
-		/*
-		case RETRO_DEVICE_KEYBOARD:
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT))
-				Sys_SetKeys(K_MOUSE1, 1);
-			else
-				Sys_SetKeys(K_MOUSE1, 0);
-
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT))
-				Sys_SetKeys(K_MOUSE2, 1);
-			else
-				Sys_SetKeys(K_MOUSE2, 0);
-
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE))
-				Sys_SetKeys(K_MOUSE3, 1);
-			else
-				Sys_SetKeys(K_MOUSE3, 0);
-
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELUP))
-				Sys_SetKeys(K_MOUSE4, 1);
-			else
-				Sys_SetKeys(K_MOUSE4, 0);
-
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELDOWN))
-				Sys_SetKeys(K_MOUSE5, 1);
-			else
-				Sys_SetKeys(K_MOUSE5, 0);
-
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP))
-				Sys_SetKeys(K_MOUSE6, 1);
-			else
-				Sys_SetKeys(K_MOUSE6, 0);
-
-			if (input_cb(port, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN))
-				Sys_SetKeys(K_MOUSE7, 1);
-			else
-				Sys_SetKeys(K_MOUSE7, 0);
-
-			if (quake_devices[0] == RETRO_DEVICE_KEYBOARD) {
-				if (input_cb(port, RETRO_DEVICE_KEYBOARD, 0, RETROK_UP))
-					Sys_SetKeys(K_UPARROW, 1);
-				else
-					Sys_SetKeys(K_UPARROW, 0);
-
-				if (input_cb(port, RETRO_DEVICE_KEYBOARD, 0, RETROK_DOWN))
-					Sys_SetKeys(K_DOWNARROW, 1);
-				else
-					Sys_SetKeys(K_DOWNARROW, 0);
-
-				if (input_cb(port, RETRO_DEVICE_KEYBOARD, 0, RETROK_LEFT))
-					Sys_SetKeys(K_LEFTARROW, 1);
-				else
-					Sys_SetKeys(K_LEFTARROW, 0);
-
-				if (input_cb(port, RETRO_DEVICE_KEYBOARD, 0, RETROK_RIGHT))
-					Sys_SetKeys(K_RIGHTARROW, 1);
-				else
-					Sys_SetKeys(K_RIGHTARROW, 0);
-			}
-			break;
-		*/
-		case RETRO_DEVICE_NONE:
-			break;
+			if (input_cb(0, RETRO_DEVICE_JOYPAD, 0, i))
+				ret |= (1 << i);
 		}
 	}
-	
+
+	/* Open Inventory */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_LEFT);
+
+	/* Inventory Previous */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_UP);
+
+	/* Inventory Next */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_DOWN);
+
+	/* Use Inventory Item */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+
+	/* Next Weapon */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_Y);
+
+	/* Run */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_L);
+
+	/* Crouch / Descend */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_R);
+
+	/* Jump / Climb */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_L2);
+
+	/* Attack */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_R2);
+
+	/* Drop Inventory Item */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_R3);
+
+	/* Show / Hide Help Computer */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_SELECT);
+
+	/* Note: Menu open/cancel/select keys are
+	 * arbitrarily hard-coded
+	 * > Show Menu: K_ESCAPE
+	 * > Cancel: K_AUX4
+	 * > Select: K_AUX1 */
+
+	/* Show Menu */
+	Sys_SetKeys(K_ESCAPE, (ret & (1 << RETRO_DEVICE_ID_JOYPAD_START)) ? 1 : 0);
+
+	/* Menu Cancel */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_B);
+
+	/* Menu Select */
+	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_A);
+
 	sys_frame_time = Sys_Milliseconds();
 }
 
@@ -968,7 +829,7 @@ void *Hunk_Begin (int maxsize)
 	else
 		memset (membase, 0, hunkmaxsize);
 
-	return membase;
+	return (void*)membase;
 }
 
 void *Hunk_Alloc (int size)
@@ -989,33 +850,27 @@ void *Hunk_Alloc (int size)
 
 int Hunk_End (void)
 {
-	// Following code attempts to shrink allocation but
-	// can't handle the case when realloc decides to allocate a new smaller
-	// chunk. Bionic on Android always allocates new chunk. So
-	// tolerate some memory inefficiency but at least it works.
-	//
-	// This code depends on an implementation detail
-	// of realloc and is essentially wrong but it's currently
-	// impractical to fix due to other coede keeping a lot
-	// of pointers to parts of allocated chunk.
-	//
-	// One way of fixing is to allocate memory for several hunks at
-	// once and continuing storing next hunk where the last one left
-	// off but just skipping it is good enough for now. 
-#ifndef __ANDROID__
-	byte *n;
-
-	n = realloc(membase, cursize);
-
-	if (n != membase)
-		Sys_Error("Hunk_End:  Could not remap virtual block (%d)", errno);
-#endif
-
+	/* We would prefer to shrink the allocated memory
+	 * buffer to 'cursize' bytes here, but there exists
+	 * no robust cross-platform method for doing this
+	 * given that pointers to arbitrary locations in
+	 * the buffer are stored and used throughout the
+	 * codebase...
+	 * (i.e. realloc() would invalidate these pointers,
+	 * and break everything)
+	 * Attempts were made to allocate hunks dynamically,
+	 * storing them in an RBUF array - but the codebase
+	 * plays such dirty tricks with the returned pointers
+	 * that this turned out to be impractical (it would
+	 * have required a major rewrite of the renderers...) */
 	return cursize;
 }
 
 void Hunk_Free (void *base)
 {
+	if (base == membase)
+		membase = NULL;
+
 	if (base)
 		free(base);
 }
@@ -1263,6 +1118,7 @@ bool initial_resolution_set = false;
 static void update_variables(bool startup)
 {
 	struct retro_variable var;
+	struct retro_core_option_display option_display;
 
    var.key = "vitaquakeii_framerate";
    var.value = NULL;
@@ -1277,16 +1133,49 @@ static void update_variables(bool startup)
             if (!environ_cb(RETRO_ENVIRONMENT_GET_TARGET_REFRESH_RATE,
                      &target_framerate))
                target_framerate = 60.0f;
+
             framerate = (unsigned)target_framerate;
+
+				/* Only discrete frame rates are permitted
+				 * > 'round' to a legal value */
+				if (framerate < 50)
+					framerate = 50;
+				else if ((framerate > 50) && (framerate < 72))
+					framerate = 60;
+				else if ((framerate > 60) && (framerate < 75))
+					framerate = 72;
+				else if ((framerate > 72) && (framerate < 90))
+					framerate = 75;
+				else if ((framerate > 75) && (framerate < 100))
+					framerate = 90;
+				else if ((framerate > 90) && (framerate < 119))
+					framerate = 100;
+				else if ((framerate > 100) && (framerate < 120))
+					framerate = 119;
+				else if ((framerate > 120) && (framerate < 155))
+					framerate = 144;
+				else if ((framerate > 144) && (framerate < 160))
+					framerate = 155;
+				else if ((framerate > 155) && (framerate < 180))
+					framerate = 165;
+				else if ((framerate > 165) && (framerate < 200))
+					framerate = 180;
+				else if ((framerate > 180) && (framerate < 240))
+					framerate = 200;
+				else if ((framerate > 200) && (framerate < 244))
+					framerate = 240;
+				else if ((framerate > 240) && (framerate < 300))
+					framerate = 244;
+				else if ((framerate > 244) && (framerate < 360))
+					framerate = 300;
+				else if (framerate > 360)
+					framerate = 360;
          }
          else
             framerate = atoi(var.value);
       }
       else
-      {
          framerate    = 60;
-         framerate_ms = 16;
-      }
 
       switch (framerate)
       {
@@ -1332,6 +1221,10 @@ static void update_variables(bool startup)
          case 360:
             framerate_ms = 3;
             break;
+         default:
+				framerate    = 60;
+				framerate_ms = 16;
+				break;
       }
 
       var.key = "vitaquakeii_resolution";
@@ -1356,11 +1249,65 @@ static void update_variables(bool startup)
          initial_resolution_set = true;
       }
 
+		var.key = "vitaquakeii_gamma";
+		var.value = NULL;
+		libretro_gamma = 1.0f;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			/* Invert sense so greater = brighter,
+			 * and scale to a range of 0.5 to 1.3 */
+			float gamma_correction = atof(var.value);
+
+			if (gamma_correction < 0.2f)
+				gamma_correction = 0.2f;
+			if (gamma_correction > 1.0f)
+				gamma_correction = 1.0f;
+
+			libretro_gamma = (-1.0f * gamma_correction) + 1.5f;
+		}
+
 #ifdef HAVE_OPENGL
       var.key = "vitaquakeii_renderer";
       var.value = NULL;
 
       enable_opengl = !environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) || strcmp(var.value, "software") != 0;
+
+		var.key = "vitaquakeii_gl_modulate";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			libretro_gl_modulate = atof(var.value);
+
+			if (libretro_gl_modulate > 5.0f)
+				libretro_gl_modulate = 5.0f;
+			if (libretro_gl_modulate < 1.0f)
+				libretro_gl_modulate = 1.0f;
+		}
+
+		/* Hide irrelevant options */
+		option_display.visible = false;
+
+		if (enable_opengl)
+		{
+			option_display.key = "vitaquakeii_sw_dithered_filtering";
+			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+		}
+		else
+		{
+			option_display.key = "vitaquakeii_gl_modulate";
+			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+
+			option_display.key = "vitaquakeii_gl_texture_filtering";
+			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+
+			option_display.key = "vitaquakeii_gl_shadows";
+			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+
+			option_display.key = "vitaquakeii_gl_gl_xflip";
+			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+		}
 #endif
    }
    
@@ -1374,12 +1321,20 @@ static void update_variables(bool startup)
 		else
 			invert_y_axis = -1;
 	}
-   
+
+	var.key = "vitaquakeii_analog_deadzone";
+	var.value = NULL;
+	analog_deadzone = (int)(0.15f * ANALOG_RANGE);
+
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		analog_deadzone = (int)(atoi(var.value) * 0.01f * ANALOG_RANGE);
+
 	/* We need Qcommon_Init to be executed to be able to set Cvars */
-	if (!startup) {
+	if (!startup)
+	{
 		var.key = "vitaquakeii_rumble";
 		var.value = NULL;
-	
+
 		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
 		{
 			if (strcmp(var.value, "disabled") == 0)
@@ -1387,8 +1342,28 @@ static void update_variables(bool startup)
 			else
 				Cvar_SetValue( "pstv_rumble", 1 );
 		}
-		
-		var.key = "vitaquakeii_dithered_filtering";
+
+		var.key = "vitaquakeii_cl_run";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			if (strcmp(var.value, "disabled") == 0)
+				Cvar_SetValue( "cl_run", 0 );
+			else
+				Cvar_SetValue( "cl_run", 1 );
+		}
+
+		var.key = "vitaquakeii_mouse_sensitivity";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			float mouse_sensitivity = atof(var.value);
+			Cvar_SetValue( "sensitivity", mouse_sensitivity );
+		}
+
+		var.key = "vitaquakeii_sw_dithered_filtering";
 		var.value = NULL;
 
 		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value && sw_texfilt)
@@ -1398,8 +1373,24 @@ static void update_variables(bool startup)
 			else
 				Cvar_SetValue( "sw_texfilt", 0);
 		}
-#ifdef HAVE_OPENGL	
-		var.key = "vitaquakeii_specular";
+
+#ifdef HAVE_OPENGL
+		var.key = "vitaquakeii_gl_texture_filtering";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			if (strcmp(var.value, "nearest") == 0)
+				Cvar_Set( "gl_texturemode", "GL_NEAREST" );
+			else if (strcmp(var.value, "linear") == 0)
+				Cvar_Set( "gl_texturemode", "GL_LINEAR" );
+			else if (strcmp(var.value, "linear_hq") == 0)
+				Cvar_Set( "gl_texturemode", "GL_LINEAR_MIPMAP_LINEAR" );
+			else
+				Cvar_Set( "gl_texturemode", "GL_NEAREST_MIPMAP_LINEAR" );
+		}
+
+		var.key = "vitaquakeii_gl_gl_xflip";
 		var.value = NULL;
 
 		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -1409,7 +1400,8 @@ static void update_variables(bool startup)
 			else
 				Cvar_SetValue( "gl_xflip", 1 );
 		}
-#endif		
+#endif
+
 		var.key = "vitaquakeii_xhair";
 		var.value = NULL;
 
@@ -1431,10 +1423,11 @@ static void update_variables(bool startup)
 			else
 				Cvar_SetValue( "cl_drawfps", 1 );
 		}
-		
-		var.key = "vitaquakeii_shadows";
-		var.value = NULL;
+
 #ifdef HAVE_OPENGL
+		var.key = "vitaquakeii_gl_shadows";
+		var.value = NULL;
+
 		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value && !is_soft_render)
 		{
 			if (strcmp(var.value, "disabled") == 0)
@@ -1442,7 +1435,8 @@ static void update_variables(bool startup)
 			else
 				Cvar_SetValue( "gl_shadows", 1 );
 		}
-#endif		
+#endif
+
 		var.key = "vitaquakeii_hand";
 		var.value = NULL;
 
@@ -1458,17 +1452,25 @@ static void update_variables(bool startup)
 				Cvar_SetValue( "hand", 3 );
 		}
 	}
-
 }
 
 void retro_init(void)
 {
+	shutdown_core = false;
+
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
 }
 
 void retro_deinit(void)
 {
+	if (!shutdown_core)
+		CL_Quit_f();
+
+#ifdef HAVE_OPENGL
+	GLimp_DeinitGL();
+#endif
+
    libretro_supports_bitmasks = false;
 }
 
@@ -1497,49 +1499,8 @@ unsigned retro_api_version(void)
    return RETRO_API_VERSION;
 }
 
-void gp_layout_set_bind(gp_layout_t gp_layout)
-{
-   char buf[100];
-   unsigned i;
-   for (i=0; gp_layout.bind[i].key; ++i)
-   {
-      snprintf(buf, sizeof(buf), "bind %s \"%s\"\n", gp_layout.bind[i].key,
-                                                   gp_layout.bind[i].com);
-      Cbuf_AddText(buf);
-   }
-}
-
 void retro_set_controller_port_device(unsigned port, unsigned device)
 {
-   if (port == 0)
-   {
-      switch (device)
-      {
-         case RETRO_DEVICE_JOYPAD:
-            quake_devices[port] = RETRO_DEVICE_JOYPAD;
-            environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, classic.desc);
-            gp_layout_set_bind(classic);
-            break;
-         case RETRO_DEVICE_JOYPAD_ALT:
-            quake_devices[port] = RETRO_DEVICE_JOYPAD;
-            environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, classic_alt.desc);
-            gp_layout_set_bind(classic_alt);
-            break;
-         case RETRO_DEVICE_MODERN:
-            quake_devices[port] = RETRO_DEVICE_MODERN;
-            environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, modern.desc);
-            gp_layout_set_bind(modern);
-            break;
-         case RETRO_DEVICE_KEYBOARD:
-            quake_devices[port] = RETRO_DEVICE_KEYBOARD;
-            break;
-         case RETRO_DEVICE_NONE:
-         default:
-            quake_devices[port] = RETRO_DEVICE_NONE;
-            if (log_cb)
-               log_cb(RETRO_LOG_ERROR, "[libretro]: Invalid device.\n");
-      }
-   }
 }
 
 void retro_get_system_info(struct retro_system_info *info)
@@ -1565,24 +1526,13 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 
 void retro_set_environment(retro_environment_t cb)
 {
-   static const struct retro_controller_description port_1[] = {
-      { "Gamepad Classic", RETRO_DEVICE_JOYPAD },
-      { "Gamepad Classic Alt", RETRO_DEVICE_JOYPAD_ALT },
-      { "Gamepad Modern", RETRO_DEVICE_MODERN },
-      { "Keyboard + Mouse", RETRO_DEVICE_KEYBOARD },
-   };
-
-   static const struct retro_controller_info ports[] = {
-      { port_1, 4 },
-      { 0 },
-   };
+   bool option_categories_supported;
+   struct retro_log_callback log;
 
    environ_cb = cb;
 
-   libretro_set_core_options(environ_cb);
-   cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
-
-   struct retro_log_callback log;
+   libretro_set_core_options(environ_cb,
+         &option_categories_supported);
 
    if(environ_cb(RETRO_ENVIRONMENT_GET_LOG_INTERFACE, &log))
       log_cb = log.log;
@@ -1647,10 +1597,17 @@ bool retro_load_game(const struct retro_game_info *info)
 #endif
 	bool use_external_savedir = false;
 	const char *base_save_dir = NULL;
-#if 0
-	struct retro_keyboard_callback cb = { keyboard_cb };
-#endif
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+
+	if (!info || !info->path)
+		return false;
+
+	environ_cb(RETRO_ENVIRONMENT_SET_INPUT_DESCRIPTORS, input_desc);
+
+	if (environ_cb(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE, &rumble))
+		log_cb(RETRO_LOG_INFO, "Rumble environment supported.\n");
+	else
+		log_cb(RETRO_LOG_INFO, "Rumble environment not supported.\n");
 
 	update_variables(true);
 
@@ -1678,27 +1635,19 @@ bool retro_load_game(const struct retro_game_info *info)
 			return false;
 		}
 		is_soft_render = true;
-	} else {
+	}
+	else
+	{
 		if (log_cb)
 			log_cb(RETRO_LOG_INFO, "vitaQuakeII: using OpenGL renderer.\n");
 	}
-	
-
-	if (!info)
-		return false;
 	
 	sprintf(path_lower, "%s", info->path);
 	
 	for (i=0; path_lower[i]; ++i)
 		path_lower[i] = tolower(path_lower[i]);
 	
-#if 0
-   environ_cb(RETRO_ENVIRONMENT_SET_KEYBOARD_CALLBACK, &cb);
-#endif
-	
 	extract_directory(g_rom_dir, info->path, sizeof(g_rom_dir));
-	
-	snprintf(g_pak_path, sizeof(g_pak_path), "%s", info->path);
 	
 	if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &base_save_dir) && base_save_dir)
 	{
@@ -1718,26 +1667,22 @@ bool retro_load_game(const struct retro_game_info *info)
 		}
 	}
 	
-	/* > Error check */
-	if (!use_external_savedir)
-	{
-		/* > Use ROM directory fallback... */
-		snprintf(g_save_dir, sizeof(g_save_dir), "%s", g_rom_dir);
-	}
-	else
-	{
-		/* > Final check: is the save directory the same as the 'rom' directory?
-		 *   (i.e. ensure logical behaviour if user has set a bizarre save path...) */
-		use_external_savedir = (strcmp(g_save_dir, g_rom_dir) != 0);
-	}
+	/* > Final check: is the save directory the same as the 'rom' directory?
+	 *   (i.e. ensure logical behaviour if user has set a bizarre save path...) */
+	use_external_savedir = use_external_savedir && (strcmp(g_save_dir, g_rom_dir) != 0);
 	
-	if (environ_cb(RETRO_ENVIRONMENT_GET_RUMBLE_INTERFACE, &rumble))
-		log_cb(RETRO_LOG_INFO, "Rumble environment supported.\n");
-	else
-		log_cb(RETRO_LOG_INFO, "Rumble environment not supported.\n");
+	/* If we are not using an external save directory,
+	 * then set g_save_dir to an empty string (rom directory
+	 * will be used by default) */
+	if (!use_external_savedir)
+		g_save_dir[0] = false;
 	
 	if (strstr(path_lower, "baseq2"))
-		extract_directory(g_rom_dir, g_rom_dir, sizeof(g_rom_dir));
+	{
+		char tmp[1024];
+		extract_directory(tmp, g_rom_dir, sizeof(tmp));
+		strncpy(g_rom_dir, tmp, sizeof(g_rom_dir) - 1);
+	}
 
 	return true;
 	
@@ -1798,8 +1743,10 @@ void retro_run(void)
 	if (shutdown_core)
 		return;
 
-	if (is_soft_render) video_cb(tex_buffer, scr_width, scr_height, scr_width << 1);
-	else {
+	if (is_soft_render)
+		video_cb(tex_buffer, scr_width, scr_height, scr_width << 1);
+	else
+	{
 #ifdef HAVE_OPENGL
       if (!libretro_shared_context)
          glsm_ctl(GLSM_CTL_STATE_UNBIND, NULL);
@@ -1809,7 +1756,6 @@ void retro_run(void)
 	
 	audio_process();
 	audio_callback();
-  
 }
 
 void retro_unload_game(void)
@@ -1956,13 +1902,10 @@ void SNDDMA_BeginPainting(void)
 
 /* vid.c */
 
-viddef_t vid;
-
 #define REF_OPENGL  0
 
 cvar_t *vid_ref;
 cvar_t *vid_fullscreen;
-extern cvar_t *vid_gamma;
 
 extern cvar_t *gl_picmip;
 cvar_t *gl_mode;
@@ -1977,9 +1920,7 @@ static menuframework_s *s_current_menu;
 
 static menulist_s       s_mode_list;
 static menulist_s       s_ref_list;
-static menuslider_s     s_tq_slider;
 static menuslider_s     s_screensize_slider;
-static menuslider_s     s_brightness_slider;
 static menuaction_s     s_cancel_action;
 static menuaction_s     s_defaults_action;
 static menulist_s       s_shadows_slider;
@@ -2096,18 +2037,6 @@ static void ShadowsCallback( void *unused )
 	Cvar_SetValue( "gl_shadows", s_shadows_slider.curvalue );
 }
 
-static void BrightnessCallback( void *s )
-{
-    menuslider_s *slider = ( menuslider_s * ) s;
-
-    if ( strcmp( vid_ref->string, "soft" ) == 0 )
-    {
-        float gamma = ( 0.8 - ( slider->curvalue/10.0 - 0.5 ) ) + 0.5;
-
-        Cvar_SetValue( "vid_gamma", gamma );
-    }
-}
-
 static void ResetDefaults( void *unused )
 {
 	VID_MenuInit();
@@ -2115,18 +2044,9 @@ static void ResetDefaults( void *unused )
 
 static void ApplyChanges( void *unused )
 {
-   /*
-    ** invert sense so greater = brighter, and scale to a range of 0.5 to 1.3
-    */
-   float gamma = ( 0.8 - ( s_brightness_slider.curvalue/10.0 - 0.5 ) ) + 0.5;
-
-   Cvar_SetValue( "vid_gamma", gamma );
-   /*Cvar_SetValue( "gl_mode", s_mode_list.curvalue ); */
 #ifdef HAVE_OPENGL
    if (enable_opengl)
    {
-     Cvar_SetValue( "gl_picmip", 3 - s_tq_slider.curvalue );
-
      Cvar_Set( "vid_ref", "gl" );
      Cvar_Set( "gl_driver", "opengl32" );
    }
@@ -2178,8 +2098,6 @@ void    VID_Init (void)
 
    vid_ref = Cvar_Get ("vid_ref", "soft", CVAR_ARCHIVE);
    vid_fullscreen = Cvar_Get ("vid_fullscreen", "0", CVAR_ARCHIVE);
-   vid_gamma = Cvar_Get( "vid_gamma", "1", CVAR_ARCHIVE );
-
 }
 
 void    VID_Shutdown (void)
@@ -2377,10 +2295,6 @@ void IN_Init (void)
 	hor_motioncam_sensitivity = Cvar_Get ("hor_motioncam_sensitivity", "2.0", CVAR_ARCHIVE);
 	use_gyro = Cvar_Get ("use_gyro", "0", CVAR_ARCHIVE);
 	pstv_rumble	= Cvar_Get ("pstv_rumble", "1",	CVAR_ARCHIVE);
-
-	int i;
-	for (i = 0; i < MAX_PADS; i++)
-		quake_devices[i] = RETRO_DEVICE_JOYPAD;
 	
 	rumble_tick = cpu_features_get_time_usec();
 }
@@ -2420,99 +2334,96 @@ void IN_StopRumble (void)
 
 void IN_Move (usercmd_t *cmd)
 {
-#if 0
-   static int cur_mx;
-   static int cur_my;
-   int mx, my;
-#endif
    int lsx, lsy, rsx, rsy;
    float speed;
    
-   if ( (in_speed.state & 1) ^ (int)cl_run->value)
-       speed = 2;
+   if ((in_speed.state & 1) ^ (int)cl_run->value)
+       speed = 2.0f;
    else
-       speed = 1;
+       speed = 1.0f;
    
-   /*if (quake_devices[0] == RETRO_DEVICE_KEYBOARD) {
-      mx = input_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-      my = input_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+	/* Left stick move */
+	lsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
+			RETRO_DEVICE_ID_ANALOG_X);
+	lsy = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
+			RETRO_DEVICE_ID_ANALOG_Y);
 
-      if (mx != cur_mx || my != cur_my)
-      {
+	if (lsx > analog_deadzone || lsx < -analog_deadzone)
+	{
+		float lx_delta;
 
-         mx *= sensitivity->value;
-         my *= sensitivity->value;
+		if (lsx > analog_deadzone)
+			lsx = lsx - analog_deadzone;
+		if (lsx < -analog_deadzone)
+			lsx = lsx + analog_deadzone;
 
-         cl.viewangles[YAW] -= m_yaw->value * mx;
+		lx_delta = (speed * (float)cl_sidespeed->value * (float)lsx) /
+				(float)(ANALOG_RANGE - analog_deadzone);
 
-         cl.viewangles[PITCH] += m_pitch->value * my;
+		if (enable_opengl && gl_xflip->value)
+			cmd->sidemove -= lx_delta;
+		else
+			cmd->sidemove += lx_delta;
+	}
 
-         if (cl.viewangles[PITCH] > 80)
-            cl.viewangles[PITCH] = 80;
-         if (cl.viewangles[PITCH] < -70)
-            cl.viewangles[PITCH] = -70;
-         cur_mx = mx;
-         cur_my = my;
-      }
-   } else */if (quake_devices[0] != RETRO_DEVICE_NONE && quake_devices[0] != RETRO_DEVICE_KEYBOARD)
-   {
-      /* Left stick move */
-      lsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-               RETRO_DEVICE_ID_ANALOG_X);
-      lsy = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-               RETRO_DEVICE_ID_ANALOG_Y);
+	if (lsy > analog_deadzone || lsy < -analog_deadzone)
+	{
+		if (lsy > analog_deadzone)
+			lsy = lsy - analog_deadzone;
+		if (lsy < -analog_deadzone)
+			lsy = lsy + analog_deadzone;
 
-      if (lsx > analog_deadzone || lsx < -analog_deadzone) {
-         if (lsx > analog_deadzone)
-            lsx = lsx - analog_deadzone;
-         if (lsx < -analog_deadzone)
-            lsx = lsx + analog_deadzone;
-         if (gl_xflip->value)
-            cmd->sidemove -= speed * cl_sidespeed->value * lsx / (ANALOG_RANGE - analog_deadzone);
-         else
-            cmd->sidemove += speed * cl_sidespeed->value * lsx / (ANALOG_RANGE - analog_deadzone);
-      }
+		cmd->forwardmove -= (speed * (float)cl_forwardspeed->value * (float)lsy) /
+				(float)(ANALOG_RANGE - analog_deadzone);
+	}
 
-      if (lsy > analog_deadzone || lsy < -analog_deadzone) {
-         if (lsy > analog_deadzone)
-            lsy = lsy - analog_deadzone;
-         if (lsy < -analog_deadzone)
-            lsy = lsy + analog_deadzone;
-         cmd->forwardmove -= speed * cl_forwardspeed->value * lsy / (ANALOG_RANGE - analog_deadzone);
-      }
+	/* Right stick Look */
+	rsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
+				RETRO_DEVICE_ID_ANALOG_X);
+	rsy = invert_y_axis * input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
+				RETRO_DEVICE_ID_ANALOG_Y);
 
-      /* Right stick Look */
-      rsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-               RETRO_DEVICE_ID_ANALOG_X);
-      rsy = invert_y_axis * input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-               RETRO_DEVICE_ID_ANALOG_Y);
+	if (rsx > analog_deadzone || rsx < -analog_deadzone)
+	{
+		float rx_delta;
 
-      if (rsx > analog_deadzone || rsx < -analog_deadzone)
-      {
-         if (rsx > analog_deadzone)
-            rsx = rsx - analog_deadzone;
-         if (rsx < -analog_deadzone)
-            rsx = rsx + analog_deadzone;
-         /* For now we are sharing the sensitivity with the mouse setting */
-         if (gl_xflip->value)
-            cl.viewangles[YAW] += (float)(sensitivity->value * rsx / (ANALOG_RANGE - analog_deadzone)) / (framerate / 60.0f);
-         else
-            cl.viewangles[YAW] -= (float)(sensitivity->value * rsx / (ANALOG_RANGE - analog_deadzone)) / (framerate / 60.0f);
-      }
+		if (rsx > analog_deadzone)
+			rsx = rsx - analog_deadzone;
+		if (rsx < -analog_deadzone)
+			rsx = rsx + analog_deadzone;
 
-      if (rsy > analog_deadzone || rsy < -analog_deadzone) {
-         if (rsy > analog_deadzone)
-            rsy = rsy - analog_deadzone;
-         if (rsy < -analog_deadzone)
-            rsy = rsy + analog_deadzone;
-         cl.viewangles[PITCH] -= (float)(sensitivity->value * rsy / (ANALOG_RANGE - analog_deadzone)) / (framerate / 60.0f);
-      }
+		/* For now we are sharing the sensitivity with the mouse setting */
+		rx_delta = ((float)sensitivity->value * (float)rsx /
+				(float)(ANALOG_RANGE - analog_deadzone)) /
+						((float)framerate / 60.0f);
 
-      if (cl.viewangles[PITCH] > 80)
-         cl.viewangles[PITCH] = 80;
-      if (cl.viewangles[PITCH] < -70)
-         cl.viewangles[PITCH] = -70;
-   }
+		if (enable_opengl && gl_xflip->value)
+			cl.viewangles[YAW] += rx_delta;
+		else
+			cl.viewangles[YAW] -= rx_delta;
+	}
+
+	if (rsy > analog_deadzone || rsy < -analog_deadzone)
+	{
+		/* Have to correct for widescreen aspect ratios,
+		 * otherwise vertical motion is too fast */
+		float aspect_correction = (float)(4 * viddef.height) /
+				(float)(3 * viddef.width);
+
+		if (rsy > analog_deadzone)
+			rsy = rsy - analog_deadzone;
+		if (rsy < -analog_deadzone)
+			rsy = rsy + analog_deadzone;
+
+		cl.viewangles[PITCH] -= (aspect_correction * (float)sensitivity->value * (float)rsy /
+				(float)(ANALOG_RANGE - analog_deadzone)) /
+						((float)framerate / 60.0f);
+	}
+
+	if (cl.viewangles[PITCH] > 80)
+		cl.viewangles[PITCH] = 80;
+	if (cl.viewangles[PITCH] < -70)
+		cl.viewangles[PITCH] = -70;
 }
 
 void IN_Activate (qboolean active)

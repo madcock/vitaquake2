@@ -1460,10 +1460,16 @@ void Qcommon_Init (int argc, char **argv)
 
 	Cbuf_AddText ("exec default.cfg\n");
 
-	Sys_DefaultConfig();
-	
+	//Sys_DefaultConfig();
+
 	Cbuf_AddText ("exec config.cfg\n");
-	
+
+	// For the libretro core, a number of default
+	// settings are essential for correct operation
+	// > Must ensure that these *override* anything
+	//   in default.cfg or config.cfg
+	Sys_DefaultConfig();
+
 	Cbuf_AddEarlyCommands (true);
 	Cbuf_Execute ();
 
