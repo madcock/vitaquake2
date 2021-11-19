@@ -10,6 +10,24 @@
     JNI_PATH: .
     CORENAME: vitaquake2
 
+.core-defs-rogue:
+  variables:
+    JNI_PATH: .
+    basegame: rogue
+    CORENAME: vitaquake2-rogue
+
+.core-defs-xatrix:
+  variables:
+    JNI_PATH: .
+    basegame: xatrix
+    CORENAME: vitaquake2-xatrix
+
+.core-defs-zaero:
+  variables:
+    JNI_PATH: .
+    basegame: zaero
+    CORENAME: vitaquake2-zaero
+
 # Inclusion templates, required for the build to work
 include:
   ################################## DESKTOPS ################################
@@ -85,7 +103,11 @@ stages:
 ##############################################################################
 #################################### STAGES ##################################
 ##############################################################################
-#
+
+################
+## vitaquake2 ##
+################
+
 ################################### DESKTOPS #################################
 # Windows 64-bit
 libretro-build-windows-x64:
@@ -197,5 +219,359 @@ libretro-build-emscripten:
   extends:
     - .libretro-emscripten-static-retroarch-master
     - .core-defs
+  variables:
+    EM_MEMORY: 402653184
+
+######################
+## vitaquake2-rogue ##
+######################
+
+################################### DESKTOPS #################################
+# Windows 64-bit
+libretro-build-windows-x64-rogue:
+  extends:
+    - .libretro-windows-x64-mingw-make-default
+    - .core-defs-rogue
+
+# Windows 32-bit
+libretro-build-windows-i686-rogue:
+  extends:
+    - .libretro-windows-i686-mingw-make-default
+    - .core-defs-rogue
+
+# Linux 64-bit
+libretro-build-linux-x64-rogue:
+  extends:
+    - .libretro-linux-x64-make-default
+    - .core-defs-rogue
+
+# Linux 32-bit
+libretro-build-linux-i686-rogue:
+  extends:
+    - .libretro-linux-i686-make-default
+    - .core-defs-rogue
+
+# MacOS 64-bit
+libretro-build-osx-x64-rogue:
+  extends:
+    - .libretro-osx-x64-make-default
+    - .core-defs-rogue
+
+# MacOS ARM 64-bit
+libretro-build-osx-arm64-rogue:
+  extends:
+    - .libretro-osx-arm64-make-default
+    - .core-defs-rogue
+
+################################### CELLULAR #################################
+# Android ARMv7a
+android-armeabi-v7a-rogue:
+  extends:
+    - .libretro-android-jni-armeabi-v7a
+    - .core-defs-rogue
+    
+# Android ARMv8a
+android-arm64-v8a-rogue:
+  extends:
+    - .core-defs-rogue
+    - .libretro-android-jni-arm64-v8a
+
+# Android 64-bit x86
+android-x86_64-rogue:
+  extends:
+    - .core-defs-rogue
+    - .libretro-android-jni-x86_64
+
+# Android 32-bit x86
+android-x86-rogue:
+  extends:
+    - .libretro-android-jni-x86
+    - .core-defs-rogue
+
+# iOS
+libretro-build-ios-arm64-rogue:
+  extends:
+    - .libretro-ios-arm64-make-default
+    - .core-defs-rogue
+
+# iOS (armv7) [iOS 9 and up]
+libretro-build-ios9-rogue:
+  extends:
+    - .libretro-ios9-make-default
+    - .core-defs-rogue
+    
+# tvOS
+libretro-build-tvos-arm64-rogue:
+  extends:
+    - .libretro-tvos-arm64-make-default
+    - .core-defs-rogue
+
+################################### CONSOLES #################################
+# Nintendo 3DS
+libretro-build-ctr-rogue:
+  extends:
+    - .libretro-ctr-static-retroarch-master
+    - .core-defs-rogue
+    
+# Nintendo WiiU
+libretro-build-wiiu-rogue:
+  extends:
+    - .libretro-wiiu-static-retroarch-master
+    - .core-defs-rogue
+    
+# Nintendo Switch
+libretro-build-libnx-aarch64-rogue:
+  extends:
+    - .libretro-libnx-static-retroarch-master
+    - .core-defs-rogue
+
+# PlayStation Vita
+libretro-build-vita-rogue:
+  extends:
+    - .libretro-vita-static-retroarch-master
+    - .core-defs-rogue
+
+#################################### MISC ##################################
+# Emscripten
+libretro-build-emscripten-rogue:
+  extends:
+    - .libretro-emscripten-static-retroarch-master
+    - .core-defs-rogue
+  variables:
+    EM_MEMORY: 402653184
+
+#######################
+## vitaquake2-xatrix ##
+#######################
+
+################################### DESKTOPS #################################
+# Windows 64-bit
+libretro-build-windows-x64-xatrix:
+  extends:
+    - .libretro-windows-x64-mingw-make-default
+    - .core-defs-xatrix
+
+# Windows 32-bit
+libretro-build-windows-i686-xatrix:
+  extends:
+    - .libretro-windows-i686-mingw-make-default
+    - .core-defs-xatrix
+
+# Linux 64-bit
+libretro-build-linux-x64-xatrix:
+  extends:
+    - .libretro-linux-x64-make-default
+    - .core-defs-xatrix
+
+# Linux 32-bit
+libretro-build-linux-i686-xatrix:
+  extends:
+    - .libretro-linux-i686-make-default
+    - .core-defs-xatrix
+
+# MacOS 64-bit
+libretro-build-osx-x64-xatrix:
+  extends:
+    - .libretro-osx-x64-make-default
+    - .core-defs-xatrix
+
+# MacOS ARM 64-bit
+libretro-build-osx-arm64-xatrix:
+  extends:
+    - .libretro-osx-arm64-make-default
+    - .core-defs-xatrix
+
+################################### CELLULAR #################################
+# Android ARMv7a
+android-armeabi-v7a-xatrix:
+  extends:
+    - .libretro-android-jni-armeabi-v7a
+    - .core-defs-xatrix
+    
+# Android ARMv8a
+android-arm64-v8a-xatrix:
+  extends:
+    - .core-defs-xatrix
+    - .libretro-android-jni-arm64-v8a
+
+# Android 64-bit x86
+android-x86_64-xatrix:
+  extends:
+    - .core-defs-xatrix
+    - .libretro-android-jni-x86_64
+
+# Android 32-bit x86
+android-x86-xatrix:
+  extends:
+    - .libretro-android-jni-x86
+    - .core-defs-xatrix
+
+# iOS
+libretro-build-ios-arm64-xatrix:
+  extends:
+    - .libretro-ios-arm64-make-default
+    - .core-defs-xatrix
+
+# iOS (armv7) [iOS 9 and up]
+libretro-build-ios9-xatrix:
+  extends:
+    - .libretro-ios9-make-default
+    - .core-defs-xatrix
+    
+# tvOS
+libretro-build-tvos-arm64-xatrix:
+  extends:
+    - .libretro-tvos-arm64-make-default
+    - .core-defs-xatrix
+
+################################### CONSOLES #################################
+# Nintendo 3DS
+libretro-build-ctr-xatrix:
+  extends:
+    - .libretro-ctr-static-retroarch-master
+    - .core-defs-xatrix
+    
+# Nintendo WiiU
+libretro-build-wiiu-xatrix:
+  extends:
+    - .libretro-wiiu-static-retroarch-master
+    - .core-defs-xatrix
+    
+# Nintendo Switch
+libretro-build-libnx-aarch64-xatrix:
+  extends:
+    - .libretro-libnx-static-retroarch-master
+    - .core-defs-xatrix
+
+# PlayStation Vita
+libretro-build-vita-xatrix:
+  extends:
+    - .libretro-vita-static-retroarch-master
+    - .core-defs-xatrix
+
+#################################### MISC ##################################
+# Emscripten
+libretro-build-emscripten-xatrix:
+  extends:
+    - .libretro-emscripten-static-retroarch-master
+    - .core-defs-xatrix
+  variables:
+    EM_MEMORY: 402653184
+
+######################
+## vitaquake2-zaero ##
+######################
+
+################################### DESKTOPS #################################
+# Windows 64-bit
+libretro-build-windows-x64-zaero:
+  extends:
+    - .libretro-windows-x64-mingw-make-default
+    - .core-defs-zaero
+
+# Windows 32-bit
+libretro-build-windows-i686-zaero:
+  extends:
+    - .libretro-windows-i686-mingw-make-default
+    - .core-defs-zaero
+
+# Linux 64-bit
+libretro-build-linux-x64-zaero:
+  extends:
+    - .libretro-linux-x64-make-default
+    - .core-defs-zaero
+
+# Linux 32-bit
+libretro-build-linux-i686-zaero:
+  extends:
+    - .libretro-linux-i686-make-default
+    - .core-defs-zaero
+
+# MacOS 64-bit
+libretro-build-osx-x64-zaero:
+  extends:
+    - .libretro-osx-x64-make-default
+    - .core-defs-zaero
+
+# MacOS ARM 64-bit
+libretro-build-osx-arm64-zaero:
+  extends:
+    - .libretro-osx-arm64-make-default
+    - .core-defs-zaero
+
+################################### CELLULAR #################################
+# Android ARMv7a
+android-armeabi-v7a-zaero:
+  extends:
+    - .libretro-android-jni-armeabi-v7a
+    - .core-defs-zaero
+    
+# Android ARMv8a
+android-arm64-v8a-zaero:
+  extends:
+    - .core-defs-zaero
+    - .libretro-android-jni-arm64-v8a
+
+# Android 64-bit x86
+android-x86_64-zaero:
+  extends:
+    - .core-defs-zaero
+    - .libretro-android-jni-x86_64
+
+# Android 32-bit x86
+android-x86-zaero:
+  extends:
+    - .libretro-android-jni-x86
+    - .core-defs-zaero
+
+# iOS
+libretro-build-ios-arm64-zaero:
+  extends:
+    - .libretro-ios-arm64-make-default
+    - .core-defs-zaero
+
+# iOS (armv7) [iOS 9 and up]
+libretro-build-ios9-zaero:
+  extends:
+    - .libretro-ios9-make-default
+    - .core-defs-zaero
+    
+# tvOS
+libretro-build-tvos-arm64-zaero:
+  extends:
+    - .libretro-tvos-arm64-make-default
+    - .core-defs-zaero
+
+################################### CONSOLES #################################
+# Nintendo 3DS
+libretro-build-ctr-zaero:
+  extends:
+    - .libretro-ctr-static-retroarch-master
+    - .core-defs-zaero
+    
+# Nintendo WiiU
+libretro-build-wiiu-zaero:
+  extends:
+    - .libretro-wiiu-static-retroarch-master
+    - .core-defs-zaero
+    
+# Nintendo Switch
+libretro-build-libnx-aarch64-zaero:
+  extends:
+    - .libretro-libnx-static-retroarch-master
+    - .core-defs-zaero
+
+# PlayStation Vita
+libretro-build-vita-zaero:
+  extends:
+    - .libretro-vita-static-retroarch-master
+    - .core-defs-zaero
+
+#################################### MISC ##################################
+# Emscripten
+libretro-build-emscripten-zaero:
+  extends:
+    - .libretro-emscripten-static-retroarch-master
+    - .core-defs-zaero
   variables:
     EM_MEMORY: 402653184

@@ -7,6 +7,14 @@ include $(LOCAL_PATH)/../Makefile.common
 
 COREFLAGS := -DINLINE=inline -DHAVE_STDINT_H -DHAVE_INTTYPES_H -D__LIBRETRO__  -DLIBRETRO -DGAME_HARD_LINKED=1 -DREF_HARD_LINKED -fPIC
 
+ifeq ($(basegame),xatrix)
+COREFLAGS += -DXATRIX
+else ifeq ($(basegame),rogue)
+COREFLAGS += -DROGUE
+else ifeq ($(basegame),zaero)
+COREFLAGS += -DZAERO
+endif
+
 include $(CLEAR_VARS)
 LOCAL_MODULE    := retro
 LOCAL_SRC_FILES := $(SOURCES_CXX) $(SOURCES_C)

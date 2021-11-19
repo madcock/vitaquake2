@@ -1589,7 +1589,8 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 bool retro_load_game(const struct retro_game_info *info)
 {
 	int i;
-	char path_lower[256];
+	char path_lower[1024];
+	char parent_dir[1024];
 #if defined(_WIN32)
 	char slash = '\\';
 #else
@@ -1598,6 +1599,23 @@ bool retro_load_game(const struct retro_game_info *info)
 	bool use_external_savedir = false;
 	const char *base_save_dir = NULL;
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+
+#if defined(ROGUE)
+	const char *core_game_dir = "rogue";
+	const char *core_game_error_msg = "Error: Quake II - Ground Zero (rogue) game files required";
+#elif defined(XATRIX)
+	const char *core_game_dir = "xatrix";
+	const char *core_game_error_msg = "Error: Quake II - The Reckoning (xatrix) game files required";
+#elif defined(ZAERO)
+	const char *core_game_dir = "zaero";
+	const char *core_game_error_msg = "Error: Quake II - Zaero (zaero) game files required";
+#else
+	const char *core_game_dir = "baseq2";
+	const char *core_game_error_msg = "Error: Quake II (baseq2) game files required";
+#endif
+
+	path_lower[0] = '\0';
+	parent_dir[0] = '\0';
 
 	if (!info || !info->path)
 		return false;
@@ -1677,15 +1695,48 @@ bool retro_load_game(const struct retro_game_info *info)
 	if (!use_external_savedir)
 		g_save_dir[0] = false;
 	
-	if (strstr(path_lower, "baseq2"))
+	/* Ensure that we have valid content
+	 * (different cores are required for base
+	 * game + expansions) */
+	if (!strstr(path_lower, core_game_dir))
 	{
-		char tmp[1024];
-		extract_directory(tmp, g_rom_dir, sizeof(tmp));
-		strncpy(g_rom_dir, tmp, sizeof(g_rom_dir) - 1);
+		unsigned msg_interface_version = 0;
+		environ_cb(RETRO_ENVIRONMENT_GET_MESSAGE_INTERFACE_VERSION,
+				&msg_interface_version);
+
+		if (msg_interface_version >= 1)
+		{
+			struct retro_message_ext msg;
+
+			msg.msg      = core_game_error_msg;
+			msg.duration = 3000;
+			msg.priority = 3;
+			msg.level    = RETRO_LOG_ERROR;
+			msg.target   = RETRO_MESSAGE_TARGET_ALL;
+			msg.type     = RETRO_MESSAGE_TYPE_NOTIFICATION;
+			msg.progress = -1;
+
+			environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE_EXT, &msg);
+		}
+		else
+		{
+			struct retro_message msg;
+
+			msg.msg;
+			msg.frames;
+
+			environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &msg);
+		}
+
+		return false;
 	}
 
+	/* Quake II base directory is the *parent*
+	 * of the game directory */
+	extract_directory(parent_dir, g_rom_dir, sizeof(parent_dir));
+	strncpy(g_rom_dir, parent_dir, sizeof(g_rom_dir) - 1);
+
 	return true;
-	
 }
 
 static void audio_process(void)
@@ -1716,7 +1767,7 @@ void retro_run(void)
 		argc = 4;
 		argv[1] = "+set";
 		argv[2] = "game";
-#ifdef ROGUE
+#if defined(ROGUE)
 		argv[3] = "rogue";
 #elif defined(XATRIX)
 		argv[3] = "xatrix";
