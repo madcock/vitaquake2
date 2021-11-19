@@ -31,7 +31,11 @@
 
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #define max(a, b) ((a) > (b) ? (a) : (b))
+#ifdef _WIN32
+#include <math.h>
+#else
 #define _isnan(a) (isnan(a))
+#endif
 
 /* ================================================================== */
 

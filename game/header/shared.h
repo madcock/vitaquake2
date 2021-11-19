@@ -18,11 +18,15 @@
 #include <stdlib.h>
 #include <time.h>
 
-typedef unsigned char byte;
-#define qboolean byte
-#define false 0
-#define true 1
-//typedef enum {false, true}  qboolean;
+typedef unsigned char 		byte;
+#if (defined(__cplusplus) || !defined(PSP2))
+#ifndef PSP2
+#include <stdbool.h>
+#endif
+#define qboolean bool
+#else
+typedef enum {false, true}	qboolean;
+#endif
 
 #ifndef NULL
  #define NULL ((void *)0)

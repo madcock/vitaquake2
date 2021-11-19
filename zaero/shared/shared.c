@@ -6,6 +6,11 @@
  * =======================================================================
  */
 
+#include <ctype.h>
+#ifdef EMSCRIPTEN
+#include <strings.h>
+#endif
+
 #include "../header/shared.h"
 
 #define DEG2RAD(a) (a * M_PI) / 180.0F

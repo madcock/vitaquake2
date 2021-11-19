@@ -7,6 +7,9 @@
  */
 
 #include <ctype.h>
+#ifdef EMSCRIPTEN
+#include <strings.h>
+#endif
 
 #include "../header/shared.h"
 
