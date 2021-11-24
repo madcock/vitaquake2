@@ -25,19 +25,21 @@
  * =======================================================================
  */
 
+#include <libretro_file.h>
+
 extern void ReadLevel ( const char * filename ) ;
-extern void ReadLevelLocals ( FILE * f ) ;
-extern void ReadEdict ( FILE * f , edict_t * ent ) ;
+extern void ReadLevelLocals ( RFILE * f ) ;
+extern void ReadEdict ( RFILE * f , edict_t * ent ) ;
 extern void WriteLevel ( const char * filename ) ;
-extern void WriteLevelLocals ( FILE * f ) ;
-extern void WriteEdict ( FILE * f , edict_t * ent ) ;
+extern void WriteLevelLocals ( RFILE * f ) ;
+extern void WriteEdict ( RFILE * f , edict_t * ent ) ;
 extern void ReadGame ( const char * filename ) ;
 extern void WriteGame ( const char * filename , qboolean autosave ) ;
-extern void ReadClient ( FILE * f , gclient_t * client , short save_ver ) ;
-extern void WriteClient ( FILE * f , gclient_t * client ) ;
-extern void ReadField ( FILE * f , field_t * field , byte * base ) ;
-extern void WriteField2 ( FILE * f , field_t * field , byte * base ) ;
-extern void WriteField1 ( FILE * f , field_t * field , byte * base ) ;
+extern void ReadClient ( RFILE * f , gclient_t * client , short save_ver ) ;
+extern void WriteClient ( RFILE * f , gclient_t * client ) ;
+extern void ReadField ( RFILE * f , field_t * field , byte * base ) ;
+extern void WriteField2 ( RFILE * f , field_t * field , byte * base ) ;
+extern void WriteField1 ( RFILE * f , field_t * field , byte * base ) ;
 extern mmove_t * FindMmoveByName ( char * name ) ;
 extern mmoveList_t * GetMmoveByAddress ( mmove_t * adr ) ;
 extern byte * FindFunctionByName ( char * name ) ;

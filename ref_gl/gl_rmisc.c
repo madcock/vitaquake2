@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 /* r_misc.c */
 
+#include <libretro_file.h>
+
 typedef struct
 {
 	unsigned		width, height;			/* coordinates from main game */
@@ -108,7 +110,7 @@ void GL_ScreenShot_f (void)
    char		picname[80]; 
    char		checkname[MAX_OSPATH];
    int			i, c, temp;
-   FILE		*f;
+   RFILE		*f;
 
    /* create the scrnshots directory if it doesn't exist */
    Com_sprintf (checkname, sizeof(checkname), "%s/scrnshot", ri.FS_Gamedir());
@@ -124,10 +126,10 @@ void GL_ScreenShot_f (void)
       picname[5] = i/10 + '0'; 
       picname[6] = i%10 + '0'; 
       Com_sprintf (checkname, sizeof(checkname), "%s/scrnshot/%s", ri.FS_Gamedir(), picname);
-      f = fopen (checkname, "rb");
+      f = rfopen (checkname, "rb");
       if (!f)
          break;	/* file doesn't exist */
-      fclose (f);
+      rfclose (f);
    } 
    if (i==100) 
    {
@@ -156,9 +158,9 @@ void GL_ScreenShot_f (void)
       buffer[i+2] = temp;
    }
 
-   f = fopen (checkname, "wb");
-   fwrite (buffer, 1, c, f);
-   fclose (f);
+   f = rfopen (checkname, "wb");
+   rfwrite (buffer, 1, c, f);
+   rfclose (f);
 
    free (buffer);
    ri.Con_Printf (PRINT_ALL, "Wrote %s\n", picname);

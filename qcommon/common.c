@@ -18,6 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 // common.c -- misc functions used in client and server
+
+#include <libretro_file.h>
+
 #include "qcommon.h"
 #include "../client/qmenu.h"
 #include <setjmp.h>
@@ -35,7 +38,7 @@ int		realtime;
 jmp_buf abortframe;		// an ERR_DROP occured, exit the entire frame
 
 
-FILE	*log_stats_file;
+RFILE	*log_stats_file;
 
 cvar_t	*host_speeds;
 cvar_t	*log_stats;
@@ -46,7 +49,7 @@ cvar_t	*logfile_active;	// 1 = buffer log, 2 = flush after each print
 cvar_t	*showtrace;
 extern cvar_t	*dedicated;
 
-FILE	*logfile;
+RFILE	*logfile;
 
 int			server_state;
 
@@ -164,12 +167,12 @@ void Com_Printf (char *fmt, ...)
 		if (!logfile)
 		{
 			Com_sprintf (name, sizeof(name), "%s/qconsole.log", FS_Gamedir ());
-			logfile = fopen (name, "w");
+			logfile = rfopen (name, "w");
 		}
 		if (logfile)
-			fprintf (logfile, "%s", msg);
+			rfprintf (logfile, "%s", msg);
 		if (logfile_active->value > 1)
-			fflush (logfile);		// force it to save every time
+			rfflush (logfile);		// force it to save every time
 	}
 }
 
@@ -241,7 +244,7 @@ void Com_Error (int code, char *fmt, ...)
 
 	if (logfile)
 	{
-		fclose (logfile);
+		rfclose (logfile);
 		logfile = NULL;
 	}
 
@@ -264,7 +267,7 @@ void Com_Quit (void)
 
 	if (logfile)
 	{
-		fclose (logfile);
+		rfclose (logfile);
 		logfile = NULL;
 	}
 
@@ -1548,18 +1551,18 @@ void Qcommon_Frame (int msec)
 		{
 			if ( log_stats_file )
 			{
-				fclose( log_stats_file );
+				rfclose( log_stats_file );
 				log_stats_file = 0;
 			}
-			log_stats_file = fopen( "stats.log", "w" );
+			log_stats_file = rfopen( "stats.log", "w" );
 			if ( log_stats_file )
-				fprintf( log_stats_file, "entities,dlights,parts,frame time\n" );
+				rfprintf( log_stats_file, "entities,dlights,parts,frame time\n" );
 		}
 		else
 		{
 			if ( log_stats_file )
 			{
-				fclose( log_stats_file );
+				rfclose( log_stats_file );
 				log_stats_file = 0;
 			}
 		}

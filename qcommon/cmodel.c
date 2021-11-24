@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cmodel.c -- model loading
 
+#include <libretro_file.h>
+
 #include "qcommon.h"
 
 typedef struct
@@ -1718,9 +1720,9 @@ CM_WritePortalState
 Writes the portal state to a savegame file
 ===================
 */
-void	CM_WritePortalState (FILE *f)
+void	CM_WritePortalState (RFILE *f)
 {
-	fwrite (portalopen, sizeof(portalopen), 1, f);
+	rfwrite (portalopen, sizeof(portalopen), 1, f);
 }
 
 /*
@@ -1731,7 +1733,7 @@ Reads the portal state from a savegame file
 and recalculates the area connections
 ===================
 */
-void	CM_ReadPortalState (FILE *f)
+void	CM_ReadPortalState (RFILE *f)
 {
 	FS_Read (portalopen, sizeof(portalopen), f);
 	FloodAreaConnections ();

@@ -15,6 +15,8 @@
  * than 8 bits on your machine, you may need to do some tweaking.
  */
 
+#include <libretro_file.h>
+
 /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -31,7 +33,7 @@ extern void free JPP((void *ptr));
 typedef struct {
   struct jpeg_destination_mgr pub; /* public fields */
 
-  FILE * outfile;		/* target stream */
+  RFILE * outfile;		/* target stream */
   JOCTET * buffer;		/* start of buffer */
 } my_destination_mgr;
 
@@ -170,9 +172,9 @@ term_destination (j_compress_ptr cinfo)
     if (JFWRITE(dest->outfile, dest->buffer, datacount) != datacount)
       ERREXIT(cinfo, JERR_FILE_WRITE);
   }
-  fflush(dest->outfile);
+  rfflush(dest->outfile);
   /* Make sure we wrote the output file OK */
-  if (ferror(dest->outfile))
+  if (rferror(dest->outfile))
     ERREXIT(cinfo, JERR_FILE_WRITE);
 }
 
@@ -193,7 +195,7 @@ term_mem_destination (j_compress_ptr cinfo)
  */
 
 GLOBAL(void)
-jpeg_stdio_dest (j_compress_ptr cinfo, FILE * outfile)
+jpeg_stdio_dest (j_compress_ptr cinfo, RFILE * outfile)
 {
   my_dest_ptr dest;
 

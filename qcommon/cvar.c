@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cvar.c -- dynamic variable tracking
 
+#include <libretro_file.h>
+
 #include "qcommon.h"
 
 cvar_t	*cvar_vars;
@@ -430,18 +432,18 @@ void Cvar_WriteVariables (char *path)
 {
 	cvar_t	*var;
 	char	buffer[1024];
-	FILE	*f;
+	RFILE	*f;
 
-	f = fopen (path, "a");
+	f = rfopen (path, "a");
 	for (var = cvar_vars ; var ; var = var->next)
 	{
 		if (var->flags & CVAR_ARCHIVE)
 		{
 			Com_sprintf (buffer, sizeof(buffer), "set %s \"%s\"\n", var->name, var->string);
-			fprintf (f, "%s", buffer);
+			rfprintf (f, "%s", buffer);
 		}
 	}
-	fclose (f);
+	rfclose (f);
 }
 
 /*

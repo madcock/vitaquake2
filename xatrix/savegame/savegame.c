@@ -44,6 +44,8 @@
  * system and architecture are in the hands of the user.
  */
 
+#include <libretro_file.h>
+
 #include "../header/local.h"
 
 /*
@@ -355,7 +357,7 @@ FindMmoveByName(char *name)
  * below this block into files.
  */
 void
-WriteField1(FILE *f, field_t *field, byte *base)
+WriteField1(RFILE *f, field_t *field, byte *base)
 {
 	void *p;
 	int len;
@@ -478,7 +480,7 @@ WriteField1(FILE *f, field_t *field, byte *base)
 }
 
 void
-WriteField2(FILE *f, field_t *field, byte *base)
+WriteField2(RFILE *f, field_t *field, byte *base)
 {
 	int len;
 	void *p;
@@ -499,7 +501,7 @@ WriteField2(FILE *f, field_t *field, byte *base)
 			if (*(char **)p)
 			{
 				len = strlen(*(char **)p) + 1;
-				fwrite(*(char **)p, len, 1, f);
+				rfwrite(*(char **)p, len, 1, f);
 			}
 
 			break;
@@ -515,7 +517,7 @@ WriteField2(FILE *f, field_t *field, byte *base)
 				}
 
 				len = strlen(func->funcStr)+1;
-				fwrite (func->funcStr, len, 1, f);
+				rfwrite (func->funcStr, len, 1, f);
 			}
 
 			break;
@@ -531,7 +533,7 @@ WriteField2(FILE *f, field_t *field, byte *base)
 				}
 
 				len = strlen(mmove->mmoveStr)+1;
-				fwrite (mmove->mmoveStr, len, 1, f);
+				rfwrite (mmove->mmoveStr, len, 1, f);
 			}
 
 			break;
@@ -550,7 +552,7 @@ WriteField2(FILE *f, field_t *field, byte *base)
  * below
  */
 void
-ReadField(FILE *f, field_t *field, byte *base)
+ReadField(RFILE *f, field_t *field, byte *base)
 {
 	void *p;
 	int len;
@@ -583,7 +585,7 @@ ReadField(FILE *f, field_t *field, byte *base)
 			else
 			{
 				*(char **)p = gi.TagMalloc(32 + len, TAG_LEVEL);
-				fread(*(char **)p, len, 1, f);
+				rfread(*(char **)p, len, 1, f);
 			}
 
 			break;
@@ -641,7 +643,7 @@ ReadField(FILE *f, field_t *field, byte *base)
 							  (int)sizeof(funcStr));
 				}
 
-				fread (funcStr, len, 1, f);
+				rfread (funcStr, len, 1, f);
 
 				if ( !(*(byte **)p = FindFunctionByName (funcStr)) )
 				{
@@ -665,7 +667,7 @@ ReadField(FILE *f, field_t *field, byte *base)
 							  (int)sizeof(funcStr));
 				}
 
-				fread (funcStr, len, 1, f);
+				rfread (funcStr, len, 1, f);
 
 				if ( !(*(mmove_t **)p = FindMmoveByName (funcStr)) )
 				{
@@ -685,7 +687,7 @@ ReadField(FILE *f, field_t *field, byte *base)
  * Write the client struct into a file.
  */
 void
-WriteClient(FILE *f, gclient_t *client)
+WriteClient(RFILE *f, gclient_t *client)
 {
 	field_t *field;
 	gclient_t temp;
@@ -700,7 +702,7 @@ WriteClient(FILE *f, gclient_t *client)
 	}
 
 	/* write the block */
-	fwrite(&temp, sizeof(temp), 1, f);
+	rfwrite(&temp, sizeof(temp), 1, f);
 
 	/* now write any allocated data following the edict */
 	for (field = clientfields; field->name; field++)
@@ -713,11 +715,11 @@ WriteClient(FILE *f, gclient_t *client)
  * Read the client struct from a file
  */
 void
-ReadClient(FILE *f, gclient_t *client, short save_ver)
+ReadClient(RFILE *f, gclient_t *client, short save_ver)
 {
 	field_t *field;
 
-	fread(client, sizeof(*client), 1, f);
+	rfread(client, sizeof(*client), 1, f);
 
 	for (field = clientfields; field->name; field++)
 	{
@@ -748,7 +750,7 @@ ReadClient(FILE *f, gclient_t *client, short save_ver)
 void
 WriteGame(const char *filename, qboolean autosave)
 {
-	FILE *f;
+	RFILE *f;
 	int i;
 	char str_ver[32];
 	char str_game[32];
@@ -760,7 +762,7 @@ WriteGame(const char *filename, qboolean autosave)
 		SaveClientData();
 	}
 
-	f = fopen(filename, "wb");
+	f = rfopen(filename, "wb");
 
 	if (!f)
 	{
@@ -776,15 +778,15 @@ WriteGame(const char *filename, qboolean autosave)
 	strncpy(str_ver, SAVEGAMEVER, sizeof(str_ver) - 1);
 	strncpy(str_game, GAMEVERSION, sizeof(str_game) - 1);
 	strncpy(str_os, YQ2OSTYPE, sizeof(str_os) - 1);
-    strncpy(str_arch, YQ2ARCH, sizeof(str_arch) - 1);
+   strncpy(str_arch, YQ2ARCH, sizeof(str_arch) - 1);
 
-	fwrite(str_ver, sizeof(str_ver), 1, f);
-	fwrite(str_game, sizeof(str_game), 1, f);
-	fwrite(str_os, sizeof(str_os), 1, f);
-	fwrite(str_arch, sizeof(str_arch), 1, f);
+	rfwrite(str_ver, sizeof(str_ver), 1, f);
+	rfwrite(str_game, sizeof(str_game), 1, f);
+	rfwrite(str_os, sizeof(str_os), 1, f);
+	rfwrite(str_arch, sizeof(str_arch), 1, f);
 
 	game.autosaved = autosave;
-	fwrite(&game, sizeof(game), 1, f);
+	rfwrite(&game, sizeof(game), 1, f);
 	game.autosaved = false;
 
 	for (i = 0; i < game.maxclients; i++)
@@ -792,7 +794,7 @@ WriteGame(const char *filename, qboolean autosave)
 		WriteClient(f, &game.clients[i]);
 	}
 
-	fclose(f);
+	rfclose(f);
 }
 
 /*
@@ -803,7 +805,7 @@ WriteGame(const char *filename, qboolean autosave)
 void
 ReadGame(const char *filename)
 {
-	FILE *f;
+	RFILE *f;
 	int i;
 	char str_ver[32];
 	char str_game[32];
@@ -813,7 +815,7 @@ ReadGame(const char *filename)
 
 	gi.FreeTags(TAG_GAME);
 
-	f = fopen(filename, "rb");
+	f = rfopen(filename, "rb");
 
 	if (!f)
 	{
@@ -821,10 +823,10 @@ ReadGame(const char *filename)
 	}
 
 	/* Sanity checks */
-	fread(str_ver, sizeof(str_ver), 1, f);
-	fread(str_game, sizeof(str_game), 1, f);
-	fread(str_os, sizeof(str_os), 1, f);
-	fread(str_arch, sizeof(str_arch), 1, f);
+	rfread(str_ver, sizeof(str_ver), 1, f);
+	rfread(str_game, sizeof(str_game), 1, f);
+	rfread(str_os, sizeof(str_os), 1, f);
+	rfread(str_arch, sizeof(str_arch), 1, f);
 
 	if (!strcmp(str_ver, SAVEGAMEVER))
 	{
@@ -832,17 +834,17 @@ ReadGame(const char *filename)
 
 		if (strcmp(str_game, GAMEVERSION))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other game.so.\n");
 		}
 		else if (strcmp(str_os, YQ2OSTYPE))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other os.\n");
 		}
 		else if (strcmp(str_arch, YQ2ARCH))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other architecure.\n");
 		}
 	}
@@ -852,17 +854,17 @@ ReadGame(const char *filename)
 
 		if (strcmp(str_game, GAMEVERSION))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other game.so.\n");
 		}
 		else if (strcmp(str_os, YQ2OSTYPE))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other os.\n");
 		}
 		else if (strcmp(str_arch, YQ2ARCH))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other architecure.\n");
 		}
 	}
@@ -872,12 +874,12 @@ ReadGame(const char *filename)
 
 		if (strcmp(str_game, GAMEVERSION))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other game.so.\n");
 		}
 		else if (strcmp(str_os, OSTYPE_1))
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("Savegame from an other os.\n");
 		}
 
@@ -886,7 +888,7 @@ ReadGame(const char *filename)
 			/* Windows was forced to i386 */
 			if (strcmp(str_arch, "i386"))
 			{
-				fclose(f);
+				rfclose(f);
 				gi.error("Savegame from an other architecure.\n");
 			}
 		}
@@ -894,21 +896,21 @@ ReadGame(const char *filename)
 		{
 			if (strcmp(str_arch, ARCH_1))
 			{
-				fclose(f);
+				rfclose(f);
 				gi.error("Savegame from an other architecure.\n");
 			}
 		}
 	}
 	else
 	{
-		fclose(f);
+		rfclose(f);
 		gi.error("Savegame from an incompatible version.\n");
 	}
 
 	g_edicts = gi.TagMalloc(game.maxentities * sizeof(g_edicts[0]), TAG_GAME);
 	globals.edicts = g_edicts;
 
-	fread(&game, sizeof(game), 1, f);
+	rfread(&game, sizeof(game), 1, f);
 	game.clients = gi.TagMalloc(game.maxclients * sizeof(game.clients[0]),
 			TAG_GAME);
 
@@ -917,7 +919,7 @@ ReadGame(const char *filename)
 		ReadClient(f, &game.clients[i], save_ver);
 	}
 
-	fclose(f);
+	rfclose(f);
 }
 
 /* ========================================================== */
@@ -928,7 +930,7 @@ ReadGame(const char *filename)
  * WriteLevel.
  */
 void
-WriteEdict(FILE *f, edict_t *ent)
+WriteEdict(RFILE *f, edict_t *ent)
 {
 	field_t *field;
 	edict_t temp;
@@ -943,7 +945,7 @@ WriteEdict(FILE *f, edict_t *ent)
 	}
 
 	/* write the block */
-	fwrite(&temp, sizeof(temp), 1, f);
+	rfwrite(&temp, sizeof(temp), 1, f);
 
 	/* now write any allocated data following the edict */
 	for (field = fields; field->name; field++)
@@ -958,7 +960,7 @@ WriteEdict(FILE *f, edict_t *ent)
  * Called by WriteLevel.
  */
 void
-WriteLevelLocals(FILE *f)
+WriteLevelLocals(RFILE *f)
 {
 	field_t *field;
 	level_locals_t temp;
@@ -973,7 +975,7 @@ WriteLevelLocals(FILE *f)
 	}
 
 	/* write the block */
-	fwrite(&temp, sizeof(temp), 1, f);
+	rfwrite(&temp, sizeof(temp), 1, f);
 
 	/* now write any allocated data following the edict */
 	for (field = levelfields; field->name; field++)
@@ -991,9 +993,9 @@ WriteLevel(const char *filename)
 {
 	int i;
 	edict_t *ent;
-	FILE *f;
+	RFILE *f;
 
-	f = fopen(filename, "wb");
+	f = rfopen(filename, "wb");
 
 	if (!f)
 	{
@@ -1002,7 +1004,7 @@ WriteLevel(const char *filename)
 
 	/* write out edict size for checking */
 	i = sizeof(edict_t);
-	fwrite(&i, sizeof(i), 1, f);
+	rfwrite(&i, sizeof(i), 1, f);
 
 	/* write out level_locals_t */
 	WriteLevelLocals(f);
@@ -1017,14 +1019,14 @@ WriteLevel(const char *filename)
 			continue;
 		}
 
-		fwrite(&i, sizeof(i), 1, f);
+		rfwrite(&i, sizeof(i), 1, f);
 		WriteEdict(f, ent);
 	}
 
 	i = -1;
-	fwrite(&i, sizeof(i), 1, f);
+	rfwrite(&i, sizeof(i), 1, f);
 
-	fclose(f);
+	rfclose(f);
 }
 
 /* ========================================================== */
@@ -1036,11 +1038,11 @@ WriteLevel(const char *filename)
  * by ReadLevel.
  */
 void
-ReadEdict(FILE *f, edict_t *ent)
+ReadEdict(RFILE *f, edict_t *ent)
 {
 	field_t *field;
 
-	fread(ent, sizeof(*ent), 1, f);
+	rfread(ent, sizeof(*ent), 1, f);
 
 	for (field = fields; field->name; field++)
 	{
@@ -1055,11 +1057,11 @@ ReadEdict(FILE *f, edict_t *ent)
  * Called by ReadLevel.
  */
 void
-ReadLevelLocals(FILE *f)
+ReadLevelLocals(RFILE *f)
 {
 	field_t *field;
 
-	fread(&level, sizeof(level), 1, f);
+	rfread(&level, sizeof(level), 1, f);
 
 	for (field = levelfields; field->name; field++)
 	{
@@ -1080,11 +1082,11 @@ void
 ReadLevel(const char *filename)
 {
 	int entnum;
-	FILE *f;
+	RFILE *f;
 	int i;
 	edict_t *ent;
 
-	f = fopen(filename, "rb");
+	f = rfopen(filename, "rb");
 
 	if (!f)
 	{
@@ -1100,11 +1102,11 @@ ReadLevel(const char *filename)
 	globals.num_edicts = maxclients->value + 1;
 
 	/* check edict size */
-	fread(&i, sizeof(i), 1, f);
+	rfread(&i, sizeof(i), 1, f);
 
 	if (i != sizeof(edict_t))
 	{
-		fclose(f);
+		rfclose(f);
 		gi.error("ReadLevel: mismatched edict size");
 	}
 
@@ -1114,9 +1116,9 @@ ReadLevel(const char *filename)
 	/* load all the entities */
 	while (1)
 	{
-		if (fread(&entnum, sizeof(entnum), 1, f) != 1)
+		if (rfread(&entnum, sizeof(entnum), 1, f) != 1)
 		{
-			fclose(f);
+			rfclose(f);
 			gi.error("ReadLevel: failed to read entnum");
 		}
 
@@ -1138,7 +1140,7 @@ ReadLevel(const char *filename)
 		gi.linkentity(ent);
 	}
 
-	fclose(f);
+	rfclose(f);
 
 	/* mark all clients as unconnected */
 	for (i = 0; i < maxclients->value; i++)

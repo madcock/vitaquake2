@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <libretro_file.h>
+
 #include "server.h"
 
 /*
@@ -721,7 +723,7 @@ void SV_RecordDemoMessage (void)
 
 	// now write the entire message to the file, prefixed by the length
 	len = LittleLong (buf.cursize);
-	fwrite (&len, 4, 1, svs.demofile);
-	fwrite (buf.data, buf.cursize, 1, svs.demofile);
+	rfwrite (&len, 4, 1, svs.demofile);
+	rfwrite (buf.data, buf.cursize, 1, svs.demofile);
 }
 

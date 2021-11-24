@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // snd_dma.c -- main control for any streaming sound output device
 
+#include <libretro_file.h>
+
 #include "client.h"
 #include "snd_loc.h"
 
@@ -589,7 +591,7 @@ struct sfx_s *S_RegisterSexedSound (entity_state_t *ent, char *base)
 	int				n;
 	char			*p;
 	struct sfx_s	*sfx;
-	FILE			*f;
+	RFILE			*f;
 	char			model[MAX_QPATH];
 	char			sexedFilename[MAX_QPATH];
 	char			maleFilename[MAX_QPATH];

@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <libretro_file.h>
+
 #include "server.h"
 
 extern char g_save_dir[1024];
@@ -197,32 +199,32 @@ CopyFile
 */
 void CopyFile (char *src, char *dst)
 {
-	FILE	*f1, *f2;
+	RFILE	*f1, *f2;
 	int		l;
 	byte	buffer[65536];
 
 	Com_DPrintf ("CopyFile (%s, %s)\n", src, dst);
 
-	f1 = fopen (src, "rb");
+	f1 = rfopen (src, "rb");
 	if (!f1)
 		return;
-	f2 = fopen (dst, "wb");
+	f2 = rfopen (dst, "wb");
 	if (!f2)
 	{
-		fclose (f1);
+		rfclose (f1);
 		return;
 	}
 
 	while (1)
 	{
-		l = fread (buffer, 1, sizeof(buffer), f1);
+		l = rfread (buffer, 1, sizeof(buffer), f1);
 		if (!l)
 			break;
-		fwrite (buffer, 1, l, f2);
+		rfwrite (buffer, 1, l, f2);
 	}
 
-	fclose (f1);
-	fclose (f2);
+	rfclose (f1);
+	rfclose (f2);
 }
 
 
@@ -288,7 +290,7 @@ SV_WriteLevelFile
 void SV_WriteLevelFile (void)
 {
 	char	name[MAX_OSPATH];
-	FILE	*f;
+	RFILE	*f;
 	char  *savedir = g_save_dir;
 
 	if (g_save_dir[0] == '\0')
@@ -297,15 +299,15 @@ void SV_WriteLevelFile (void)
 	Com_DPrintf("SV_WriteLevelFile()\n");
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sv2", savedir, sv.name);
-	f = fopen(name, "wb");
+	f = rfopen(name, "wb");
 	if (!f)
 	{
 		Com_Printf ("Failed to open %s\n", name);
 		return;
 	}
-	fwrite (sv.configstrings, sizeof(sv.configstrings), 1, f);
+	rfwrite (sv.configstrings, sizeof(sv.configstrings), 1, f);
 	CM_WritePortalState (f);
-	fclose (f);
+	rfclose (f);
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sav", savedir, sv.name);
 	ge->WriteLevel (name);
@@ -320,7 +322,7 @@ SV_ReadLevelFile
 void SV_ReadLevelFile (void)
 {
 	char	name[MAX_OSPATH];
-	FILE	*f;
+	RFILE	*f;
 	char  *savedir = g_save_dir;
 
 	if (g_save_dir[0] == '\0')
@@ -329,7 +331,7 @@ void SV_ReadLevelFile (void)
 	Com_DPrintf("SV_ReadLevelFile()\n");
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sv2", savedir, sv.name);
-	f = fopen(name, "rb");
+	f = rfopen(name, "rb");
 	if (!f)
 	{
 		Com_Printf ("Failed to open %s\n", name);
@@ -337,7 +339,7 @@ void SV_ReadLevelFile (void)
 	}
 	FS_Read (sv.configstrings, sizeof(sv.configstrings), f);
 	CM_ReadPortalState (f);
-	fclose (f);
+	rfclose (f);
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sav", savedir, sv.name);
 	ge->ReadLevel (name);
@@ -351,7 +353,7 @@ SV_WriteServerFile
 */
 void SV_WriteServerFile (qboolean autosave)
 {
-	FILE	*f;
+	RFILE	*f;
 	cvar_t	*var;
 	char	name[MAX_OSPATH], string[128];
 	char	comment[32];
@@ -365,7 +367,7 @@ void SV_WriteServerFile (qboolean autosave)
 	Com_DPrintf("SV_WriteServerFile(%s)\n", autosave ? "true" : "false");
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/server.ssv", savedir);
-	f = fopen (name, "wb");
+	f = rfopen (name, "wb");
 	if (!f)
 	{
 		Com_Printf ("Couldn't write %s\n", name);
@@ -388,10 +390,10 @@ void SV_WriteServerFile (qboolean autosave)
 		Com_sprintf (comment, sizeof(comment), "ENTERING %s", sv.configstrings[CS_NAME]);
 	}
 
-	fwrite (comment, 1, sizeof(comment), f);
+	rfwrite (comment, 1, sizeof(comment), f);
 
 	// write the mapcmd
-	fwrite (svs.mapcmd, 1, sizeof(svs.mapcmd), f);
+	rfwrite (svs.mapcmd, 1, sizeof(svs.mapcmd), f);
 
 	// write all CVAR_LATCH cvars
 	// these will be things like coop, skill, deathmatch, etc
@@ -409,11 +411,11 @@ void SV_WriteServerFile (qboolean autosave)
 		memset (string, 0, sizeof(string));
 		strcpy (name, var->name);
 		strcpy (string, var->string);
-		fwrite (name, 1, sizeof(name), f);
-		fwrite (string, 1, sizeof(string), f);
+		rfwrite (name, 1, sizeof(name), f);
+		rfwrite (string, 1, sizeof(string), f);
 	}
 
-	fclose (f);
+	rfclose (f);
 
 	// write game state
 	Com_sprintf (name, sizeof(name), "%s/save/current/game.ssv", savedir);
@@ -428,7 +430,7 @@ SV_ReadServerFile
 */
 void SV_ReadServerFile (void)
 {
-	FILE	*f;
+	RFILE	*f;
 	char	name[MAX_OSPATH], string[128];
 	char	comment[32];
 	char	mapcmd[MAX_TOKEN_CHARS];
@@ -440,7 +442,7 @@ void SV_ReadServerFile (void)
 	Com_DPrintf("SV_ReadServerFile()\n");
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/server.ssv", savedir);
-	f = fopen (name, "rb");
+	f = rfopen (name, "rb");
 	if (!f)
 	{
 		Com_Printf ("Couldn't read %s\n", name);
@@ -456,14 +458,14 @@ void SV_ReadServerFile (void)
 	// these will be things like coop, skill, deathmatch, etc
 	while (1)
 	{
-		if (!fread (name, 1, sizeof(name), f))
+		if (!rfread (name, 1, sizeof(name), f))
 			break;
 		FS_Read (string, sizeof(string), f);
 		Com_DPrintf ("Set %s = %s\n", name, string);
 		Cvar_ForceSet (name, string);
 	}
 
-	fclose (f);
+	rfclose (f);
 
 	// start a new game fresh with new cvars
 	SV_InitGame ();
@@ -624,7 +626,7 @@ SV_Loadgame_f
 void SV_Loadgame_f (void)
 {
 	char	name[MAX_OSPATH];
-	FILE	*f;
+	RFILE	*f;
 	char	*dir;
 	char  *savedir = g_save_dir;
 
@@ -647,13 +649,13 @@ void SV_Loadgame_f (void)
 
 	// make sure the server.ssv file exists
 	Com_sprintf (name, sizeof(name), "%s/save/%s/server.ssv", savedir, Cmd_Argv(1));
-	f = fopen (name, "rb");
+	f = rfopen (name, "rb");
 	if (!f)
 	{
 		Com_Printf ("No such savegame: %s\n", name);
 		return;
 	}
-	fclose (f);
+	rfclose (f);
 
 	SV_CopySaveGame (Cmd_Argv(1), "current");
 
@@ -950,7 +952,7 @@ void SV_ServerRecord_f (void)
 
 	Com_Printf ("recording to %s.\n", name);
 	FS_CreatePath (name);
-	svs.demofile = fopen (name, "wb");
+	svs.demofile = rfopen (name, "wb");
 	if (!svs.demofile)
 	{
 		Com_Printf ("ERROR: couldn't open.\n");
@@ -991,8 +993,8 @@ void SV_ServerRecord_f (void)
 	// write it to the demo file
 	Com_DPrintf ("signon message length: %i\n", buf.cursize);
 	len = LittleLong (buf.cursize);
-	fwrite (&len, 4, 1, svs.demofile);
-	fwrite (buf.data, buf.cursize, 1, svs.demofile);
+	rfwrite (&len, 4, 1, svs.demofile);
+	rfwrite (buf.data, buf.cursize, 1, svs.demofile);
 
 	// the rest of the demo file will be individual frames
 }
@@ -1012,7 +1014,7 @@ void SV_ServerStop_f (void)
 		Com_Printf ("Not doing a serverrecord.\n");
 		return;
 	}
-	fclose (svs.demofile);
+	rfclose (svs.demofile);
 	svs.demofile = NULL;
 	Com_Printf ("Recording completed.\n");
 }

@@ -26,11 +26,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ctype.h>
 #include <libretro.h>
+#include <libretro_file.h>
 #include <retro_dirent.h>
+#include <string/stdstring.h>
 #include <features/features_cpu.h>
-#include <file/file_path.h>
 
-#include "libretro_core_options.h"
+#include <libretro_core_options.h>
 
 #include "../client/client.h"
 #include "../client/qmenu.h"
@@ -616,24 +617,22 @@ void CDAudio_Shutdown(void)
 {
 }
 
-static void extract_directory(char *buf, const char *path, size_t size)
+static void extract_directory(char *out_dir, const char *in_dir, size_t size)
 {
-   char *base = NULL;
+   size_t len;
 
-   strncpy(buf, path, size - 1);
-   buf[size - 1] = '\0';
+   fill_pathname_parent_dir(out_dir, in_dir, size);
 
-   base = strrchr(buf, '/');
-   if (!base)
-      base = strrchr(buf, '\\');
+   /* Remove trailing slash, if required */
+   len = strlen(out_dir);
+   if ((len > 0) &&
+       (out_dir[len - 1] == PATH_DEFAULT_SLASH_C()))
+      out_dir[len - 1] = '\0';
 
-   if (base)
-      *base = '\0';
-   else
-    {
-       buf[0] = '.';
-       buf[1] = '\0';
-    }
+   /* If parent directory is an empty string,
+    * must set it to '.' */
+   if (string_is_empty(out_dir))
+      strlcpy(out_dir, ".", size);
 }
 
 int y = 20;
@@ -893,25 +892,11 @@ int Sys_Milliseconds (void)
 
 void Sys_Mkdir (char *path)
 {
-	path_mkdir(path);
-}
+	if (string_is_empty(path) ||
+		 path_is_directory(path))
+		return;
 
-void Sys_MkdirRecursive(char *path) {
-        char tmp[256];
-        char *p = NULL;
-        size_t len;
- 
-        snprintf(tmp, sizeof(tmp),"%s",path);
-        len = strlen(tmp);
-        if(tmp[len - 1] == '/')
-                tmp[len - 1] = 0;
-        for(p = tmp + 1; *p; p++)
-                if(*p == '/') {
-                        *p = 0;
-                        Sys_Mkdir(tmp);
-                        *p = '/';
-                }
-        Sys_Mkdir(tmp);
+	path_mkdir(path);
 }
 
 static	char	findbase[MAX_OSPATH];
@@ -1474,26 +1459,6 @@ void retro_deinit(void)
    libretro_supports_bitmasks = false;
 }
 
-static void extract_basename(char *buf, const char *path, size_t size)
-{
-   char *ext        = NULL;
-   const char *base = strrchr(path, '/');
-   if (!base)
-      base = strrchr(path, '\\');
-   if (!base)
-      base = path;
-
-   if (*base == '\\' || *base == '/')
-      base++;
-
-   strncpy(buf, base, size - 1);
-   buf[size - 1] = '\0';
-
-   ext = strrchr(buf, '.');
-   if (ext)
-      *ext = '\0';
-}
-
 unsigned retro_api_version(void)
 {
    return RETRO_API_VERSION;
@@ -1528,6 +1493,7 @@ void retro_set_environment(retro_environment_t cb)
 {
    bool option_categories_supported;
    struct retro_log_callback log;
+   struct retro_vfs_interface_info vfs_iface_info;
 
    environ_cb = cb;
 
@@ -1538,6 +1504,15 @@ void retro_set_environment(retro_environment_t cb)
       log_cb = log.log;
    else
       log_cb = NULL;
+
+   vfs_iface_info.required_interface_version = 1;
+   vfs_iface_info.iface                      = NULL;
+
+   if (environ_cb(RETRO_ENVIRONMENT_GET_VFS_INTERFACE, &vfs_iface_info))
+   {
+      filestream_vfs_init(&vfs_iface_info);
+      dirent_vfs_init(&vfs_iface_info);
+	}
 }
 
 void retro_reset(void)
@@ -1591,11 +1566,6 @@ bool retro_load_game(const struct retro_game_info *info)
 	int i;
 	char path_lower[1024];
 	char parent_dir[1024];
-#if defined(_WIN32)
-	char slash = '\\';
-#else
-	char slash = '/';
-#endif
 	bool use_external_savedir = false;
 	const char *base_save_dir = NULL;
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
@@ -1666,25 +1636,24 @@ bool retro_load_game(const struct retro_game_info *info)
 		path_lower[i] = tolower(path_lower[i]);
 	
 	extract_directory(g_rom_dir, info->path, sizeof(g_rom_dir));
-	
+
 	if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &base_save_dir) && base_save_dir)
 	{
-		if (strlen(base_save_dir) > 0)
+		if (!string_is_empty(base_save_dir))
 		{
 			/* Get game 'name' (i.e. subdirectory) */
-			char game_name[1024];
-			extract_basename(game_name, g_rom_dir, sizeof(game_name));
-			
+			const char *game_name = path_basename(g_rom_dir);
+
 			/* > Build final save path */
-			snprintf(g_save_dir, sizeof(g_save_dir), "%s%c%s", base_save_dir, slash, game_name);
+			fill_pathname_join(g_save_dir, base_save_dir, game_name, sizeof(g_save_dir));
 			use_external_savedir = true;
-			
+
 			/* > Create save directory, if required */
 			if (!path_is_directory(g_save_dir))
 				use_external_savedir = path_mkdir(g_save_dir);
 		}
 	}
-	
+
 	/* > Final check: is the save directory the same as the 'rom' directory?
 	 *   (i.e. ensure logical behaviour if user has set a bizarre save path...) */
 	use_external_savedir = use_external_savedir && (strcmp(g_save_dir, g_rom_dir) != 0);
@@ -1693,7 +1662,7 @@ bool retro_load_game(const struct retro_game_info *info)
 	 * then set g_save_dir to an empty string (rom directory
 	 * will be used by default) */
 	if (!use_external_savedir)
-		g_save_dir[0] = false;
+		g_save_dir[0] = '\0';
 	
 	/* Ensure that we have valid content
 	 * (different cores are required for base
@@ -1722,8 +1691,8 @@ bool retro_load_game(const struct retro_game_info *info)
 		{
 			struct retro_message msg;
 
-			msg.msg;
-			msg.frames;
+			msg.msg      = core_game_error_msg;
+			msg.frames   = 180;
 
 			environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &msg);
 		}
@@ -1734,7 +1703,7 @@ bool retro_load_game(const struct retro_game_info *info)
 	/* Quake II base directory is the *parent*
 	 * of the game directory */
 	extract_directory(parent_dir, g_rom_dir, sizeof(parent_dir));
-	strncpy(g_rom_dir, parent_dir, sizeof(g_rom_dir) - 1);
+	strlcpy(g_rom_dir, parent_dir, sizeof(g_rom_dir));
 
 	return true;
 }

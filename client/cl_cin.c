@@ -17,6 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+#include <libretro_file.h>
+
 #include "client.h"
 
 typedef struct
@@ -170,7 +173,7 @@ void SCR_StopCinematic (void)
 	}
 	if (cl.cinematic_file)
 	{
-		fclose (cl.cinematic_file);
+		rfclose (cl.cinematic_file);
 		cl.cinematic_file = NULL;
 	}
 	if (cin.hnodes1)
@@ -436,9 +439,9 @@ byte *SCR_ReadNextFrame (void)
 	int		start, end, count;
 
 	// read the next frame
-	r = fread (&command, 1, 4, cl.cinematic_file);
+	r = rfread (&command, 1, 4, cl.cinematic_file);
 	if (r == 0)		// we'll give it one more chance
-		r = fread (&command, 1, 4, cl.cinematic_file);
+		r = rfread (&command, 1, 4, cl.cinematic_file);
 
 	if (r != 4){
 		return NULL;

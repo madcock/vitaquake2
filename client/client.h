@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifndef _CLIENT_H_
 #define _CLIENT_H_
+
+#include <libretro_file.h>
+
 #include <math.h>
 #include <string.h>
 #include <stdarg.h>
@@ -142,7 +145,7 @@ typedef struct
 	//
 	// non-gameserver infornamtion
 	// FIXME: move this cinematic stuff into the cin_t structure
-	FILE		*cinematic_file;
+	RFILE		*cinematic_file;
 	int			cinematictime;		// cls.realtime for first cinematic frame
 	int			cinematicframe;
 	char		cinematicpalette[768];
@@ -227,7 +230,7 @@ typedef struct
 
 	int			challenge;			// from the server to use for connecting
 
-	FILE		*download;			// file transfer from server
+	RFILE		*download;			// file transfer from server
 	char		downloadtempname[MAX_OSPATH];
 	char		downloadname[MAX_OSPATH];
 	int			downloadnumber;
@@ -237,7 +240,7 @@ typedef struct
 // demo recording info must be here, so it isn't cleared on level change
 	qboolean	demorecording;
 	qboolean	demowaiting;	// don't record until a non-delta message is received
-	FILE		*demofile;
+	RFILE		*demofile;
 } client_static_t;
 
 extern client_static_t	cls;

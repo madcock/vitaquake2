@@ -1,6 +1,7 @@
 ifeq ($(LIBRETRO_COMM_DIR),)
 LIBRETRO_COMM_DIR = $(CORE_DIR)/libretro-common
 endif
+LIBRETRO_DIR = $(CORE_DIR)/libretro
 JPEG8C_DIR = $(CORE_DIR)/jpeg-8c
 
 SOURCES_C := 
@@ -8,9 +9,10 @@ SOURCES_C :=
 INCFLAGS  := \
 	-I$(CORE_DIR) \
 	-I$(LIBRETRO_COMM_DIR)/include \
+	-I$(LIBRETRO_DIR) \
 	-I$(JPEG8C_DIR)
 
-SYSTEM = $(CORE_DIR)/libretro/libretro.c
+SYSTEM = $(LIBRETRO_DIR)/libretro.c
 
 SYSTEM_COMM = \
       $(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
@@ -29,7 +31,7 @@ SYSTEM_COMM = \
       $(LIBRETRO_COMM_DIR)/time/rtime.c \
       $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
 
-ifneq ($(platform),emscripten)
+ifneq ($(STATIC_LINKING), 1)
 	SYSTEM += $(SYSTEM_COMM)
 endif
 
@@ -93,7 +95,7 @@ REFSOFT = \
 	$(CORE_DIR)/ref_soft/r_draw.c \
 	$(CORE_DIR)/ref_soft/r_edge.c \
 	$(CORE_DIR)/ref_soft/r_image.c \
-	$(CORE_DIR)/libretro/swimpl.c
+	$(LIBRETRO_DIR)/swimpl.c
 
 REFGL = \
 	$(CORE_DIR)/ref_gl/gl_draw.c \
