@@ -18,9 +18,21 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-int		CDAudio_Init(void);
-void	CDAudio_Shutdown(void);
-void	CDAudio_Play(int track, qboolean looping);
-void	CDAudio_Stop(void);
-void	CDAudio_Update(void);
-void	CDAudio_Activate (qboolean active);
+#ifndef __CDAUDIO_H
+#define __CDAUDIO_H
+
+#include <stdint.h>
+
+#define AUDIO_SAMPLE_RATE 48000
+#define AUDIO_BUFFER_SIZE  2048
+
+int  CDAudio_Init(void);
+void CDAudio_Shutdown(void);
+void CDAudio_Play(int track, qboolean looping);
+void CDAudio_Stop(void);
+void CDAudio_Update(void);
+
+void CDAudio_Mix(int16_t *buffer, size_t num_frames, float volume);
+qboolean CDAudio_Playing(void);
+
+#endif

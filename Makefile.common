@@ -12,7 +12,13 @@ INCFLAGS  := \
 	-I$(LIBRETRO_DIR) \
 	-I$(JPEG8C_DIR)
 
-SYSTEM = $(LIBRETRO_DIR)/libretro.c
+SYSTEM = \
+	$(LIBRETRO_DIR)/libretro.c \
+	$(LIBRETRO_DIR)/libretro_cdaudio.c
+
+ifeq ($(HAVE_CDAUDIO),1)
+	SYSTEM += $(LIBRETRO_DIR)/core_audio_mixer.c
+endif
 
 SYSTEM_COMM = \
       $(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
@@ -31,8 +37,21 @@ SYSTEM_COMM = \
       $(LIBRETRO_COMM_DIR)/time/rtime.c \
       $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
 
+SYSTEM_COMM_AUDIO = \
+	$(LIBRETRO_COMM_DIR)/audio/conversion/float_to_s16.c \
+	$(LIBRETRO_COMM_DIR)/audio/conversion/s16_to_float.c \
+	$(LIBRETRO_COMM_DIR)/audio/resampler/audio_resampler.c \
+	$(LIBRETRO_COMM_DIR)/audio/resampler/drivers/sinc_resampler.c \
+	$(LIBRETRO_COMM_DIR)/file/config_file.c \
+	$(LIBRETRO_COMM_DIR)/file/config_file_userdata.c \
+	$(LIBRETRO_COMM_DIR)/lists/string_list.c \
+	$(LIBRETRO_COMM_DIR)/memmap/memalign.c
+
 ifneq ($(STATIC_LINKING), 1)
 	SYSTEM += $(SYSTEM_COMM)
+	ifeq ($(HAVE_CDAUDIO),1)
+		SYSTEM += $(SYSTEM_COMM_AUDIO)
+	endif
 endif
 
 CLIENT = \
