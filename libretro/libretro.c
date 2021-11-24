@@ -35,6 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../client/client.h"
 #include "../client/qmenu.h"
+#include "../client/cdaudio.h"
 
 #ifdef HAVE_OPENGL
 #include "../ref_gl/gl_local.h"
@@ -48,6 +49,9 @@ bool is_soft_render = false;
 unsigned	sys_frame_time;
 uint64_t rumble_tick;
 void *tex_buffer = NULL;
+
+bool cdaudio_enabled = true;
+float cdaudio_volume = 0.5f;
 
 float libretro_gamma = 1.0f;
 #ifdef HAVE_OPENGL
@@ -126,6 +130,7 @@ api_entry funcs[GL_FUNCS_NUM];
 
 char g_rom_dir[1024] = {0};
 char g_save_dir[1024] = {0};
+char g_music_dir[1024] = {0};
 
 #ifdef HAVE_OPENGL
 extern struct retro_hw_render_callback hw_render;
@@ -149,9 +154,6 @@ static struct retro_rumble_interface rumble;
 static bool libretro_supports_bitmasks = false;
 
 static void audio_callback(void);
-
-#define SAMPLE_RATE  48000
-#define BUFFER_SIZE 	2048
 
 /* System analog stick range is -0x8000 to 0x8000 */
 #define ANALOG_RANGE 0x8000
@@ -585,36 +587,6 @@ qboolean	NET_GetPacket (netsrc_t sock, netadr_t *net_from, sizebuf_t *net_messag
 void GLimp_Shutdown( void )
 {
 
-}
-
-void CDAudio_Play(int track, qboolean looping)
-{
-}
-
-
-void CDAudio_Stop(void)
-{
-}
-
-
-void CDAudio_Resume(void)
-{
-}
-
-
-void CDAudio_Update(void)
-{
-}
-
-
-int CDAudio_Init(void)
-{
-	return 0;
-}
-
-
-void CDAudio_Shutdown(void)
-{
 }
 
 static void extract_directory(char *out_dir, const char *in_dir, size_t size)
@@ -1314,6 +1286,35 @@ static void update_variables(bool startup)
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
 		analog_deadzone = (int)(atoi(var.value) * 0.01f * ANALOG_RANGE);
 
+#if defined(HAVE_CDAUDIO)
+	var.key = "vitaquakeii_cdaudio_enabled";
+	var.value = NULL;
+	cdaudio_enabled = true;
+
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		if (strcmp(var.value, "disabled") == 0)
+			cdaudio_enabled = false;
+
+	if (!cdaudio_enabled && CDAudio_Playing())
+		CDAudio_Stop();
+
+	var.key = "vitaquakeii_cdaudio_volume";
+	var.value = NULL;
+	cdaudio_volume = 0.5f;
+
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+	{
+		float volume_level = atof(var.value);
+
+		if (volume_level < 5.0f)
+			volume_level = 5.0f;
+		if (volume_level > 130.0f)
+			volume_level = 130.0f;
+
+		cdaudio_volume = volume_level / 100.0f;
+	}
+#endif
+
 	/* We need Qcommon_Init to be executed to be able to set Cvars */
 	if (!startup)
 	{
@@ -1456,6 +1457,8 @@ void retro_deinit(void)
 	GLimp_DeinitGL();
 #endif
 
+	CDAudio_Shutdown();
+
    libretro_supports_bitmasks = false;
 }
 
@@ -1480,7 +1483,7 @@ void retro_get_system_info(struct retro_system_info *info)
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
    info->timing.fps            = framerate;
-   info->timing.sample_rate    = SAMPLE_RATE;
+   info->timing.sample_rate    = AUDIO_SAMPLE_RATE;
 
    info->geometry.base_width   = scr_width;
    info->geometry.base_height  = scr_height;
@@ -1637,6 +1640,9 @@ bool retro_load_game(const struct retro_game_info *info)
 	
 	extract_directory(g_rom_dir, info->path, sizeof(g_rom_dir));
 
+	/* Get CD audio directory */
+	fill_pathname_join(g_music_dir, g_rom_dir, "music", sizeof(g_music_dir));
+
 	if (environ_cb(RETRO_ENVIRONMENT_GET_SAVE_DIRECTORY, &base_save_dir) && base_save_dir)
 	{
 		if (!string_is_empty(base_save_dir))
@@ -1708,10 +1714,6 @@ bool retro_load_game(const struct retro_game_info *info)
 	return true;
 }
 
-static void audio_process(void)
-{
-}
-
 bool first_boot = true;
 
 void retro_run(void)
@@ -1774,7 +1776,6 @@ void retro_run(void)
 #endif
 	}
 	
-	audio_process();
 	audio_callback();
 }
 
@@ -1839,27 +1840,40 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 static volatile int sound_initialized = 0;
 static int stop_audio = false;
 
-static int16_t audio_buffer[BUFFER_SIZE];
-static unsigned audio_buffer_ptr;
+static int16_t audio_buffer[AUDIO_BUFFER_SIZE];
+static int16_t audio_out_buffer[AUDIO_BUFFER_SIZE];
+static unsigned audio_buffer_ptr = 0;
 
 static void audio_callback(void)
 {
-	unsigned read_first, read_second;
-	float samples_per_frame = (2 * SAMPLE_RATE) / framerate;
-	unsigned read_end       = audio_buffer_ptr + samples_per_frame;
+   unsigned read_first;
+   unsigned read_second;
+   unsigned samples_per_frame = (2 * AUDIO_SAMPLE_RATE) / framerate;
+   unsigned read_end          = audio_buffer_ptr + samples_per_frame;
+   int16_t *audio_out_ptr     = audio_out_buffer;
+   uintptr_t i;
 
-	if (read_end > BUFFER_SIZE)
-		read_end = BUFFER_SIZE;
+   if (read_end > AUDIO_BUFFER_SIZE)
+      read_end = AUDIO_BUFFER_SIZE;
 
-	read_first  = read_end - audio_buffer_ptr;
-	read_second = samples_per_frame - read_first;
+   read_first  = read_end - audio_buffer_ptr;
+   read_second = samples_per_frame - read_first;
 
-	audio_batch_cb(audio_buffer + audio_buffer_ptr, read_first / (dma.samplebits / 8));
-	audio_buffer_ptr += read_first;
-	if (read_second >= 1) {
-		audio_batch_cb(audio_buffer, read_second / (dma.samplebits / 8));
-		audio_buffer_ptr = read_second;
-	}
+   for (i = 0; i < read_first; i++)
+      *(audio_out_ptr++) = *(audio_buffer + audio_buffer_ptr + i);
+
+   audio_buffer_ptr += read_first;
+
+   if (read_second >= 1)
+   {
+      for (i = 0; i < read_second; i++)
+         *(audio_out_ptr++) = *(audio_buffer + i);
+
+      audio_buffer_ptr = read_second;
+   }
+
+   CDAudio_Mix(audio_out_buffer, samples_per_frame >> 1, cdaudio_volume);
+   audio_batch_cb(audio_out_buffer, samples_per_frame >> 1);
 }
 
 uint64_t initial_tick;
@@ -1869,14 +1883,14 @@ qboolean SNDDMA_Init(void)
    sound_initialized = 0;
 
    /* Force Quake to use our settings */
-   Cvar_SetValue( "s_khz", SAMPLE_RATE );
+   Cvar_SetValue( "s_khz", AUDIO_SAMPLE_RATE );
    Cvar_SetValue( "s_loadas8bit", false );
 
    /* Fill the audio DMA information block */
    dma.samplebits       = 16;
-   dma.speed            = SAMPLE_RATE;
+   dma.speed            = AUDIO_SAMPLE_RATE;
    dma.channels         = 2;
-   dma.samples          = BUFFER_SIZE;
+   dma.samples          = AUDIO_BUFFER_SIZE;
    dma.samplepos        = 0;
    dma.submission_chunk = 1;
    dma.buffer           = audio_buffer;
