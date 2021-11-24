@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <libretro_file.h>
+
 #include "server.h"
 
 server_static_t	svs;				// persistant server info
@@ -118,7 +120,7 @@ SV_CheckForSavegame
 void SV_CheckForSavegame (void)
 {
 	char     name[MAX_OSPATH];
-	FILE     *f;
+	RFILE     *f;
 	int      i;
 	char     *savedir = g_save_dir;
 
@@ -132,11 +134,11 @@ void SV_CheckForSavegame (void)
 		return;
 
 	Com_sprintf (name, sizeof(name), "%s/save/current/%s.sav", savedir, sv.name);
-	f = fopen (name, "rb");
+	f = rfopen (name, "rb");
 	if (!f)
 		return;		// no savegame
 
-	fclose (f);
+	rfclose (f);
 
 	SV_ClearWorld ();
 
@@ -183,7 +185,7 @@ void SV_SpawnServer (char *server, char *spawnpoint, server_state_t serverstate,
 
 	Com_DPrintf ("SpawnServer: %s\n",server);
 	if (sv.demofile)
-		fclose (sv.demofile);
+		rfclose (sv.demofile);
 
 	svs.spawncount++;		// any partially connected client will be
 							// restarted

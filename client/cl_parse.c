@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // cl_parse.c  -- parse a message received from the server
 
+#include <libretro_file.h>
+
 #include "client.h"
 
 char *svc_strings[256] =
@@ -68,7 +70,7 @@ to start a download from the server.
 */
 qboolean	CL_CheckOrDownloadFile (char *filename)
 {
-	FILE *fp;
+	RFILE *fp;
 	char	name[MAX_OSPATH];
 
 	if (strstr (filename, ".."))
@@ -97,11 +99,11 @@ qboolean	CL_CheckOrDownloadFile (char *filename)
 
 //	FS_CreatePath (name);
 
-	fp = fopen (name, "r+b");
+	fp = rfopen (name, "r+b");
 	if (fp) { // it exists
 		int len;
-		fseek(fp, 0, SEEK_END);
-		len = ftell(fp);
+		rfseek(fp, 0, SEEK_END);
+		len = rftell(fp);
 
 		cls.download = fp;
 
@@ -212,7 +214,7 @@ void CL_ParseDownload (void)
 		if (cls.download)
 		{
 			// if here, we tried to resume a file but the server said no
-			fclose (cls.download);
+			rfclose (cls.download);
 			cls.download = NULL;
 		}
 		CL_RequestNextDownload ();
@@ -226,7 +228,7 @@ void CL_ParseDownload (void)
 
 		FS_CreatePath (name);
 
-		cls.download = fopen (name, "wb");
+		cls.download = rfopen (name, "wb");
 		if (!cls.download)
 		{
 			net_message.readcount += size;
@@ -236,7 +238,7 @@ void CL_ParseDownload (void)
 		}
 	}
 
-	fwrite (net_message.data + net_message.readcount, 1, size, cls.download);
+	rfwrite (net_message.data + net_message.readcount, 1, size, cls.download);
 	net_message.readcount += size;
 
 	if (percent != 100)
@@ -263,12 +265,12 @@ void CL_ParseDownload (void)
 
 //		Com_Printf ("100%%\n");
 
-		fclose (cls.download);
+		rfclose (cls.download);
 
 		// rename the temp file to it's final name
 		CL_DownloadFileName(oldn, sizeof(oldn), cls.downloadtempname);
 		CL_DownloadFileName(newn, sizeof(newn), cls.downloadname);
-		r = rename (oldn, newn);
+		r = filestream_rename(oldn, newn);
 		if (r)
 			Com_Printf ("failed to rename.\n");
 
@@ -710,7 +712,7 @@ void CL_ParseServerMessage (void)
 			Com_Printf ("Server disconnected, reconnecting\n");
 			if (cls.download) {
 				//ZOID, close download
-				fclose (cls.download);
+				rfclose (cls.download);
 				cls.download = NULL;
 			}
 			cls.state = ca_connecting;

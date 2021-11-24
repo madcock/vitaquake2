@@ -17,6 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+#include <libretro_file.h>
+
 #include <ctype.h>
 #ifdef _WIN32
 #include <io.h>
@@ -2008,7 +2011,8 @@ void M_Credits_MenuDraw( void )
 		{
 			int x;
 
-			x = ( viddef.width - strlen( credits[i] ) * 8 - stringoffset * 8 ) / 2 + ( j + stringoffset ) * 8;
+			x = ( viddef.width / scale - strlen( credits[i] ) * 8 - stringoffset * 8 ) / 2 + ( j + stringoffset ) * 8;
+
 
 			if ( bold )
 				re.DrawChar( x * scale, y * scale, credits[i][j+stringoffset] + 128, scale );
@@ -2268,7 +2272,7 @@ extern char g_save_dir[1024];
 void Create_Savestrings (void)
 {
 	int		i;
-	FILE	*f;
+	RFILE	*f;
 	char	name[MAX_OSPATH];
 	char  *savedir = g_save_dir;
 
@@ -2278,7 +2282,7 @@ void Create_Savestrings (void)
 	for (i=0 ; i<MAX_SAVEGAMES ; i++)
 	{
 		Com_sprintf (name, sizeof(name), "%s/save/save%i/server.ssv", savedir, i);
-		f = fopen (name, "rb");
+		f = rfopen (name, "rb");
 		if (!f)
 		{
 			strcpy (m_savestrings[i], "<EMPTY>");
@@ -2287,7 +2291,7 @@ void Create_Savestrings (void)
 		else
 		{
 			FS_Read (m_savestrings[i], sizeof(m_savestrings[i]), f);
-			fclose (f);
+			rfclose (f);
 			m_savevalid[i] = true;
 		}
 	}
@@ -2857,28 +2861,25 @@ void StartServer_MenuInit( void )
 	char *s;
 	int length;
 	int i;
-	FILE *fp;
+	RFILE *fp;
 
 	/*
 	** load the list of map names
 	*/
 	Com_sprintf( mapsname, sizeof( mapsname ), "%s/maps.lst", FS_Gamedir() );
-	if ( ( fp = fopen( mapsname, "rb" ) ) == 0 )
+	if ( ( fp = rfopen( mapsname, "rb" ) ) == 0 )
 	{
 		if ( ( length = FS_LoadFile( "maps.lst", ( void ** ) &buffer ) ) == -1 )
 			Com_Error( ERR_DROP, "couldn't find maps.lst\n" );
 	}
 	else
 	{
-#ifdef _WIN32
-		length = filelength( fileno( fp  ) );
-#else
-		fseek(fp, 0, SEEK_END);
-		length = ftell(fp);
-		fseek(fp, 0, SEEK_SET);
-#endif
+		rfseek(fp, 0, SEEK_END);
+		length = rftell(fp);
+		rfseek(fp, 0, SEEK_SET);
+
 		buffer = malloc( length );
-		fread( buffer, length, 1, fp );
+		rfread( buffer, length, 1, fp );
 	}
 
 	s = buffer;
@@ -2920,6 +2921,7 @@ void StartServer_MenuInit( void )
 
 	if ( fp != 0 )
 	{
+		rfclose( fp );
 		fp = 0;
 		free( buffer );
 	}

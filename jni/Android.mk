@@ -1,7 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
-CORE_DIR     := $(LOCAL_PATH)/..
-LIBRETRO_DIR := $(LOCAL_PATH)/..
+CORE_DIR   := $(LOCAL_PATH)/..
 
 include $(LOCAL_PATH)/../Makefile.common
 
@@ -20,7 +19,7 @@ LOCAL_MODULE    := retro
 LOCAL_SRC_FILES := $(SOURCES_CXX) $(SOURCES_C)
 LOCAL_CXXFLAGS  := $(COREFLAGS) $(INCFLAGS)
 LOCAL_CFLAGS    := $(COREFLAGS) $(INCFLAGS)
-LOCAL_LDFLAGS   := -Wl,-version-script=$(LIBRETRO_DIR)/link.T
+LOCAL_LDFLAGS   := -Wl,-version-script=$(CORE_DIR)/link.T
 LOCAL_C_INCLUDES = $(CORE_DIR)
 
 include $(BUILD_SHARED_LIBRARY)

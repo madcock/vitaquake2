@@ -45,6 +45,8 @@
 
 #include <stdio.h>
 
+#include <libretro_file.h>
+
 /*
  * We need memory copying and zeroing functions, plus strncpy().
  * ANSI and System V implementations declare these in <string.h>.
@@ -86,6 +88,6 @@
  */
 
 #define JFREAD(file,buf,sizeofbuf)  \
-  ((size_t) fread((void *) (buf), (size_t) 1, (size_t) (sizeofbuf), (file)))
+  ((size_t) rfread((void *) (buf), (size_t) 1, (size_t) (sizeofbuf), (file)))
 #define JFWRITE(file,buf,sizeofbuf)  \
-  ((size_t) fwrite((const void *) (buf), (size_t) 1, (size_t) (sizeofbuf), (file)))
+  ((size_t) rfwrite((const void *) (buf), (size_t) 1, (size_t) (sizeofbuf), (file)))

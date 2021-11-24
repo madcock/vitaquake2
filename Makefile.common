@@ -1,148 +1,165 @@
 ifeq ($(LIBRETRO_COMM_DIR),)
-LIBRETRO_COMM_DIR  = $(CORE_DIR)/libretro-common
+LIBRETRO_COMM_DIR = $(CORE_DIR)/libretro-common
 endif
+LIBRETRO_DIR = $(CORE_DIR)/libretro
 JPEG8C_DIR = $(CORE_DIR)/jpeg-8c
+
 SOURCES_C := 
 
-INCFLAGS   := \
+INCFLAGS  := \
 	-I$(CORE_DIR) \
 	-I$(LIBRETRO_COMM_DIR)/include \
+	-I$(LIBRETRO_DIR) \
 	-I$(JPEG8C_DIR)
 
-SYSTEM = 	$(CORE_DIR)/libretro/libretro.c
+SYSTEM = $(LIBRETRO_DIR)/libretro.c
 
-SYSTEM_COMM = $(LIBRETRO_COMM_DIR)/file/retro_dirent.c \
-				$(LIBRETRO_COMM_DIR)/encodings/encoding_utf.c \
-				$(LIBRETRO_COMM_DIR)/string/stdstring.c \
-				$(LIBRETRO_COMM_DIR)/file/file_path.c \
-				$(LIBRETRO_COMM_DIR)/compat/fopen_utf8.c \
-				$(LIBRETRO_COMM_DIR)/compat/compat_strl.c \
-				$(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
-				$(LIBRETRO_COMM_DIR)/compat/compat_strcasestr.c \
-				$(LIBRETRO_COMM_DIR)/compat/compat_snprintf.c \
-				$(LIBRETRO_COMM_DIR)/features/features_cpu.c \
-				$(LIBRETRO_COMM_DIR)/streams/file_stream.c \
-				$(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
+SYSTEM_COMM = \
+      $(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
+      $(LIBRETRO_COMM_DIR)/compat/compat_snprintf.c \
+      $(LIBRETRO_COMM_DIR)/compat/compat_strcasestr.c \
+      $(LIBRETRO_COMM_DIR)/compat/compat_strl.c \
+      $(LIBRETRO_COMM_DIR)/compat/fopen_utf8.c \
+      $(LIBRETRO_COMM_DIR)/encodings/encoding_utf.c \
+      $(LIBRETRO_COMM_DIR)/features/features_cpu.c \
+      $(LIBRETRO_COMM_DIR)/file/file_path.c \
+      $(LIBRETRO_COMM_DIR)/file/file_path_io.c \
+      $(LIBRETRO_COMM_DIR)/file/retro_dirent.c \
+      $(LIBRETRO_COMM_DIR)/streams/file_stream.c \
+      $(LIBRETRO_COMM_DIR)/streams/file_stream_transforms.c \
+      $(LIBRETRO_COMM_DIR)/string/stdstring.c \
+      $(LIBRETRO_COMM_DIR)/time/rtime.c \
+      $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
 
-ifneq ($(platform),emscripten)
-SYSTEM += $(SYSTEM_COMM)
+ifneq ($(STATIC_LINKING), 1)
+	SYSTEM += $(SYSTEM_COMM)
 endif
 
-CLIENT =		$(CORE_DIR)/client/cl_input.c \
-				$(CORE_DIR)/client/cl_inv.c \
-				$(CORE_DIR)/client/cl_main.c \
-				$(CORE_DIR)/client/cl_cin.c \
-				$(CORE_DIR)/client/cl_ents.c \
-				$(CORE_DIR)/client/cl_fx.c \
-				$(CORE_DIR)/client/cl_parse.c \
-				$(CORE_DIR)/client/cl_pred.c \
-				$(CORE_DIR)/client/cl_scrn.c \
-				$(CORE_DIR)/client/cl_tent.c \
-				$(CORE_DIR)/client/cl_view.c \
-				$(CORE_DIR)/client/menu.c \
-				$(CORE_DIR)/client/console.c \
-				$(CORE_DIR)/client/keys.c \
-				$(CORE_DIR)/client/snd_dma.c \
-				$(CORE_DIR)/client/snd_mem.c \
-				$(CORE_DIR)/client/snd_mix.c \
-				$(CORE_DIR)/client/qmenu.c \
-				$(CORE_DIR)/client/cl_newfx.c 
+CLIENT = \
+	$(CORE_DIR)/client/cl_input.c \
+	$(CORE_DIR)/client/cl_inv.c \
+	$(CORE_DIR)/client/cl_main.c \
+	$(CORE_DIR)/client/cl_cin.c \
+	$(CORE_DIR)/client/cl_ents.c \
+	$(CORE_DIR)/client/cl_fx.c \
+	$(CORE_DIR)/client/cl_parse.c \
+	$(CORE_DIR)/client/cl_pred.c \
+	$(CORE_DIR)/client/cl_scrn.c \
+	$(CORE_DIR)/client/cl_tent.c \
+	$(CORE_DIR)/client/cl_view.c \
+	$(CORE_DIR)/client/menu.c \
+	$(CORE_DIR)/client/console.c \
+	$(CORE_DIR)/client/keys.c \
+	$(CORE_DIR)/client/snd_dma.c \
+	$(CORE_DIR)/client/snd_mem.c \
+	$(CORE_DIR)/client/snd_mix.c \
+	$(CORE_DIR)/client/qmenu.c \
+	$(CORE_DIR)/client/cl_newfx.c
 
-QCOMMON = 	$(CORE_DIR)/qcommon/cmd.c \
-				$(CORE_DIR)/qcommon/cmodel.c \
-				$(CORE_DIR)/qcommon/common.c \
-				$(CORE_DIR)/qcommon/crc.c \
-				$(CORE_DIR)/qcommon/cvar.c \
-				$(CORE_DIR)/qcommon/files.c \
-				$(CORE_DIR)/qcommon/md4.c \
-				$(CORE_DIR)/qcommon/net_chan.c \
-				$(CORE_DIR)/qcommon/pmove.c 
+QCOMMON = \
+	$(CORE_DIR)/qcommon/cmd.c \
+	$(CORE_DIR)/qcommon/cmodel.c \
+	$(CORE_DIR)/qcommon/common.c \
+	$(CORE_DIR)/qcommon/crc.c \
+	$(CORE_DIR)/qcommon/cvar.c \
+	$(CORE_DIR)/qcommon/files.c \
+	$(CORE_DIR)/qcommon/md4.c \
+	$(CORE_DIR)/qcommon/net_chan.c \
+	$(CORE_DIR)/qcommon/pmove.c
 
-SERVER = 	$(CORE_DIR)/server/sv_ccmds.c \
-				$(CORE_DIR)/server/sv_ents.c \
-				$(CORE_DIR)/server/sv_game.c \
-				$(CORE_DIR)/server/sv_init.c \
-				$(CORE_DIR)/server/sv_main.c \
-				$(CORE_DIR)/server/sv_send.c \
-				$(CORE_DIR)/server/sv_user.c \
-				$(CORE_DIR)/server/sv_world.c
+SERVER = \
+	$(CORE_DIR)/server/sv_ccmds.c \
+	$(CORE_DIR)/server/sv_ents.c \
+	$(CORE_DIR)/server/sv_game.c \
+	$(CORE_DIR)/server/sv_init.c \
+	$(CORE_DIR)/server/sv_main.c \
+	$(CORE_DIR)/server/sv_send.c \
+	$(CORE_DIR)/server/sv_user.c \
+	$(CORE_DIR)/server/sv_world.c
 
-REFSOFT = 	$(CORE_DIR)/ref_soft/r_alias.c \
-				$(CORE_DIR)/ref_soft/r_main.c \
-				$(CORE_DIR)/ref_soft/r_light.c \
-				$(CORE_DIR)/ref_soft/r_misc.c \
-				$(CORE_DIR)/ref_soft/r_model.c \
-				$(CORE_DIR)/ref_soft/r_part.c \
-				$(CORE_DIR)/ref_soft/r_poly.c \
-				$(CORE_DIR)/ref_soft/r_polyse.c \
-				$(CORE_DIR)/ref_soft/r_rast.c \
-				$(CORE_DIR)/ref_soft/r_scan.c \
-				$(CORE_DIR)/ref_soft/r_sprite.c \
-				$(CORE_DIR)/ref_soft/r_surf.c \
-				$(CORE_DIR)/ref_soft/r_aclip.c \
-				$(CORE_DIR)/ref_soft/r_bsp.c \
-				$(CORE_DIR)/ref_soft/r_draw.c \
-				$(CORE_DIR)/ref_soft/r_edge.c \
-				$(CORE_DIR)/ref_soft/r_image.c \
-				$(CORE_DIR)/libretro/swimpl.c
+REFSOFT = \
+	$(CORE_DIR)/ref_soft/r_alias.c \
+	$(CORE_DIR)/ref_soft/r_main.c \
+	$(CORE_DIR)/ref_soft/r_light.c \
+	$(CORE_DIR)/ref_soft/r_misc.c \
+	$(CORE_DIR)/ref_soft/r_model.c \
+	$(CORE_DIR)/ref_soft/r_part.c \
+	$(CORE_DIR)/ref_soft/r_poly.c \
+	$(CORE_DIR)/ref_soft/r_polyse.c \
+	$(CORE_DIR)/ref_soft/r_rast.c \
+	$(CORE_DIR)/ref_soft/r_scan.c \
+	$(CORE_DIR)/ref_soft/r_sprite.c \
+	$(CORE_DIR)/ref_soft/r_surf.c \
+	$(CORE_DIR)/ref_soft/r_aclip.c \
+	$(CORE_DIR)/ref_soft/r_bsp.c \
+	$(CORE_DIR)/ref_soft/r_draw.c \
+	$(CORE_DIR)/ref_soft/r_edge.c \
+	$(CORE_DIR)/ref_soft/r_image.c \
+	$(LIBRETRO_DIR)/swimpl.c
 
-REFGL = 	$(CORE_DIR)/ref_gl/gl_draw.c \
-			$(CORE_DIR)/ref_gl/gl_image.c \
-			$(CORE_DIR)/ref_gl/gl_light.c \
-			$(CORE_DIR)/ref_gl/gl_mesh.c \
-			$(CORE_DIR)/ref_gl/gl_model.c \
-			$(CORE_DIR)/ref_gl/gl_rmain.c \
-			$(CORE_DIR)/ref_gl/gl_rmisc.c \
-			$(CORE_DIR)/ref_gl/gl_rsurf.c \
-			$(CORE_DIR)/ref_gl/gl_warp.c
+REFGL = \
+	$(CORE_DIR)/ref_gl/gl_draw.c \
+	$(CORE_DIR)/ref_gl/gl_image.c \
+	$(CORE_DIR)/ref_gl/gl_light.c \
+	$(CORE_DIR)/ref_gl/gl_mesh.c \
+	$(CORE_DIR)/ref_gl/gl_model.c \
+	$(CORE_DIR)/ref_gl/gl_rmain.c \
+	$(CORE_DIR)/ref_gl/gl_rmisc.c \
+	$(CORE_DIR)/ref_gl/gl_rsurf.c \
+	$(CORE_DIR)/ref_gl/gl_warp.c
 
-REFCOMMON = $(CORE_DIR)/ref_common/r_alias_common.c \
-				$(CORE_DIR)/ref_common/r_image_common.c
+REFCOMMON = \
+	$(CORE_DIR)/ref_common/r_alias_common.c \
+	$(CORE_DIR)/ref_common/r_image_common.c
 
-BASEQ2_DIRS = game game/savegame game/player game/monster/berserker game/monster/boss2 game/monster/boss3 game/monster/brain \
+BASEQ2_DIRS = \
+	game game/savegame game/player game/monster/berserker game/monster/boss2 game/monster/boss3 game/monster/brain \
 	game/monster/chick game/monster/flipper game/monster/float game/monster/flyer game/monster/gladiator game/monster/gunner \
 	game/monster/hover game/monster/infantry game/monster/insane game/monster/medic game/monster/misc game/monster/mutant \
 	game/monster/parasite game/monster/soldier game/monster/supertank game/monster/tank game/shared
 BASEQ2 := $(foreach dir,$(BASEQ2_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
-ROGUE_DIRS = rogue rogue/shared rogue/savegame rogue/player rogue/dm rogue/monster/widow rogue/monster/turret rogue/monster/tank \
+ROGUE_DIRS = \
+	rogue rogue/shared rogue/savegame rogue/player rogue/dm rogue/monster/widow rogue/monster/turret rogue/monster/tank \
 	rogue/monster/supertank rogue/monster/stalker rogue/monster/soldier rogue/monster/parasite rogue/monster/mutant rogue/monster/misc \
 	rogue/monster/medic rogue/monster/insane rogue/monster/infantry rogue/monster/hover rogue/monster/gunner rogue/monster/gladiator \
 	rogue/monster/flyer rogue/monster/float rogue/monster/flipper rogue/monster/chick rogue/monster/carrier rogue/monster/brain \
 	rogue/monster/boss3 rogue/monster/boss2 rogue/monster/berserker
 ROGUE := $(foreach dir,$(ROGUE_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
-XATRIX_DIRS = xatrix xatrix/shared xatrix/savegame xatrix/player xatrix/monster/tank xatrix/monster/supertank xatrix/monster/soldier \
+XATRIX_DIRS = \
+	xatrix xatrix/shared xatrix/savegame xatrix/player xatrix/monster/tank xatrix/monster/supertank xatrix/monster/soldier \
 	xatrix/monster/parasite xatrix/monster/mutant xatrix/monster/misc xatrix/monster/medic xatrix/monster/insane xatrix/monster/infantry xatrix/monster/hover xatrix/monster/gunner \
 	xatrix/monster/gladiator xatrix/monster/gekk xatrix/monster/flyer xatrix/monster/float xatrix/monster/flipper xatrix/monster/fixbot xatrix/monster/chick \
 	xatrix/monster/brain xatrix/monster/boss5 xatrix/monster/boss3 xatrix/monster/boss2 xatrix/monster/berserker
 XATRIX := $(foreach dir,$(XATRIX_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
-ZAERO_DIRS = zaero zaero/zaero zaero/shared zaero/savegame zaero/player zaero/monster/tank zaero/monster/supertank \
+ZAERO_DIRS = \
+	zaero zaero/zaero zaero/shared zaero/savegame zaero/player zaero/monster/tank zaero/monster/supertank \
 	zaero/monster/soldier zaero/monster/sentien zaero/monster/parasite zaero/monster/mutant zaero/monster/misc zaero/monster/medic \
 	zaero/monster/insane zaero/monster/infantry zaero/monster/hover zaero/monster/hound zaero/monster/handler zaero/monster/gunner \
 	zaero/monster/gladiator zaero/monster/flyer zaero/monster/float zaero/monster/flipper zaero/monster/chick zaero/monster/brain \
 	zaero/monster/boss3 zaero/monster/boss2 zaero/monster/boss zaero/monster/berserker zaero/monster/actor
 ZAERO := $(foreach dir,$(ZAERO_DIRS), $(wildcard $(CORE_DIR)/$(dir)/*.c))
 
-SOURCES_C   += $(CLIENT) $(QCOMMON) $(SERVER) $(SYSTEM) $(REFSOFT) $(REFCOMMON)
+SOURCES_C += $(CLIENT) $(QCOMMON) $(SERVER) $(SYSTEM) $(REFSOFT) $(REFCOMMON)
 
 ifeq ($(HAVE_OPENGL),1)
-SOURCES_C   += $(REFGL)
-SOURCES_C   += \
-          $(LIBRETRO_COMM_DIR)/glsym/rglgen.c \
-          $(LIBRETRO_COMM_DIR)/glsym/glsym_gl.c \
-          $(LIBRETRO_COMM_DIR)/glsm/glsm.c
+	SOURCES_C += $(REFGL)
+	SOURCES_C += \
+		$(LIBRETRO_COMM_DIR)/glsym/rglgen.c \
+		$(LIBRETRO_COMM_DIR)/glsym/glsym_gl.c \
+		$(LIBRETRO_COMM_DIR)/glsm/glsm.c
 endif
 
 ifeq ($(basegame),xatrix)
-SOURCES_C   += $(XATRIX)
+	SOURCES_C += $(XATRIX)
 else ifeq ($(basegame),zaero)
-SOURCES_C   += $(ZAERO)
+	SOURCES_C += $(ZAERO)
 else ifeq ($(basegame),rogue)
-SOURCES_C   += $(ROGUE)
+	SOURCES_C += $(ROGUE)
 else
-SOURCES_C   += $(BASEQ2)
+	SOURCES_C += $(BASEQ2)
 endif
 
-SOURCES_C   += $(foreach dir,$(JPEG8C_DIR), $(wildcard $(dir)/*.c))
+SOURCES_C += $(foreach dir,$(JPEG8C_DIR), $(wildcard $(dir)/*.c))

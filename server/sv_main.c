@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <libretro_file.h>
+
 #include "server.h"
 
 netadr_t	master_adr[MAX_MASTERS];	// address of group servers
@@ -1039,7 +1041,7 @@ void SV_Shutdown (char *finalmsg, qboolean reconnect)
 
 	// free current level
 	if (sv.demofile)
-		fclose (sv.demofile);
+		rfclose (sv.demofile);
 	memset (&sv, 0, sizeof(sv));
 	Com_SetServerState (sv.state);
 
@@ -1049,7 +1051,7 @@ void SV_Shutdown (char *finalmsg, qboolean reconnect)
 	if (svs.client_entities)
 		Z_Free (svs.client_entities);
 	if (svs.demofile)
-		fclose (svs.demofile);
+		rfclose (svs.demofile);
 	memset (&svs, 0, sizeof(svs));
 }
 

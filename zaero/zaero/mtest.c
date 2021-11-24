@@ -1,5 +1,7 @@
 #if defined(_DEBUG) && defined(_Z_TESTMODE)
 
+#include <libretro_file.h>
+
 #include "../header/local.h"
 
 void Weapon_Generic (edict_t *ent, 
@@ -203,7 +205,7 @@ void convertToVector(char *vecStr, vec3_t *size)
 
 void InitTestWeapon(void)
 {
-  FILE *wCfgFile;
+  RFILE *wCfgFile;
   char fname[256];
 
   testWeapon = FindItemByClassname ("weapon_test");
@@ -215,71 +217,71 @@ void InitTestWeapon(void)
   strcpy(fname, gamedir->string);
   strcat(fname, "/testweapon.cfg");
 
-  wCfgFile = fopen(fname, "rt");
+  wCfgFile = rfopen(fname, "rt");
   if(!wCfgFile)
   {
     return;
   }
 
-  if(!fgets(testWeap_className, 256, wCfgFile))
+  if(!rfgets(testWeap_className, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testWeap_className[strlen(testWeap_className) - 1] = 0;
 
-  if(!fgets(testWeap_gModel, 256, wCfgFile))
+  if(!rfgets(testWeap_gModel, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testWeap_gModel[strlen(testWeap_gModel) - 1] = 0;
 
-  if(!fgets(testWeap_vModel, 256, wCfgFile))
+  if(!rfgets(testWeap_vModel, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testWeap_vModel[strlen(testWeap_vModel) - 1] = 0;
 
-  if(!fgets(testWeap_icon, 256, wCfgFile))
+  if(!rfgets(testWeap_icon, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testWeap_icon[strlen(testWeap_icon) - 1] = 0;
 
-  if(!fgets(testWeap_name, 256, wCfgFile))
+  if(!rfgets(testWeap_name, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testWeap_name[strlen(testWeap_name) - 1] = 0;
 
-  if(!fgets(testWeap_aminationFrames, 512, wCfgFile))
+  if(!rfgets(testWeap_aminationFrames, 512, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
-  if(!fgets(testWeap_idleFrames, 512, wCfgFile))
+  if(!rfgets(testWeap_idleFrames, 512, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
-  if(!fgets(testWeap_fireFrames, 512, wCfgFile))
+  if(!rfgets(testWeap_fireFrames, 512, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
-  fclose(wCfgFile);
+  rfclose(wCfgFile);
 
 
   sscanf(testWeap_aminationFrames, "%d,%d,%d,%d", &testWeap_FRAME_ACTIVATE_LAST, &testWeap_FRAME_FIRE_LAST, &testWeap_FRAME_IDLE_LAST, &testWeap_FRAME_DEACTIVATE_LAST);
@@ -411,7 +413,7 @@ void Cmd_TestItem (edict_t *ent)
 
 void InitTestItem(void)
 {
-  FILE *wCfgFile;
+  RFILE *wCfgFile;
   char fname[256];
 
   testItem = FindItemByClassname ("item_test");
@@ -423,64 +425,64 @@ void InitTestItem(void)
   strcpy(fname, gamedir->string);
   strcat(fname, "/testitem.cfg");
 
-  wCfgFile = fopen(fname, "rt");
+  wCfgFile = rfopen(fname, "rt");
   if(!wCfgFile)
   {
     return;
   }
 
-  if(!fgets(testItem_className, 256, wCfgFile))
+  if(!rfgets(testItem_className, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testItem_className[strlen(testItem_className) - 1] = 0;
 
-  if(!fgets(testItem_gModel, 256, wCfgFile))
+  if(!rfgets(testItem_gModel, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testItem_gModel[strlen(testItem_gModel) - 1] = 0;
 
-  if(!fgets(testItem_icon, 256, wCfgFile))
+  if(!rfgets(testItem_icon, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testItem_icon[strlen(testItem_icon) - 1] = 0;
 
-  if(!fgets(testItem_name, 256, wCfgFile))
+  if(!rfgets(testItem_name, 256, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   testItem_name[strlen(testItem_name) - 1] = 0;
 
-  if(!fgets(testItem_aminationFramesStr, 4096, wCfgFile))
+  if(!rfgets(testItem_aminationFramesStr, 4096, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
 
   convertToNumbers(testItem_aminationFramesStr, testItem_aminationFrames);
 
 
-  if(!fgets(testItem_aminationFramesStr, 4096, wCfgFile))
+  if(!rfgets(testItem_aminationFramesStr, 4096, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
   
   convertToVector(testItem_aminationFramesStr, &(testItem_Size[0]));
 
-  if(!fgets(testItem_aminationFramesStr, 4096, wCfgFile))
+  if(!rfgets(testItem_aminationFramesStr, 4096, wCfgFile))
   {
-    fclose(wCfgFile);
+    rfclose(wCfgFile);
     return;
   }
   

@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // console.c
 
+#include <libretro_file.h>
+
 #include "client.h"
 
 console_t	con;
@@ -146,7 +148,7 @@ void Con_Dump_f (void)
 {
 	int		l, x;
 	char	*line;
-	FILE	*f;
+	RFILE	*f;
 	char	buffer[1024];
 	char	name[MAX_OSPATH];
 
@@ -160,7 +162,7 @@ void Con_Dump_f (void)
 
 	Com_Printf ("Dumped console text to %s.\n", name);
 	FS_CreatePath (name);
-	f = fopen (name, "w");
+	f = rfopen (name, "w");
 	if (!f)
 	{
 		Com_Printf ("ERROR: couldn't open.\n");
@@ -194,10 +196,10 @@ void Con_Dump_f (void)
 		for (x=0; buffer[x]; x++)
 			buffer[x] &= 0x7f;
 
-		fprintf (f, "%s\n", buffer);
+		rfprintf (f, "%s\n", buffer);
 	}
 
-	fclose (f);
+	rfclose (f);
 }
 
 						

@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 // sv_main.c -- server main program
 
+#include <libretro_file.h>
+
 #include "server.h"
 
 /*
@@ -441,7 +443,7 @@ void SV_DemoCompleted (void)
 {
 	if (sv.demofile)
 	{
-		fclose (sv.demofile);
+		rfclose (sv.demofile);
 		sv.demofile = NULL;
 	}
 	SV_Nextserver ();
@@ -505,7 +507,7 @@ void SV_SendClientMessages (void)
 		else
 		{
 			// get the next message
-			r = fread (&msglen, 4, 1, sv.demofile);
+			r = rfread (&msglen, 4, 1, sv.demofile);
 			if (r != 1)
 			{
 				SV_DemoCompleted ();
@@ -519,7 +521,7 @@ void SV_SendClientMessages (void)
 			}
 			if (msglen > MAX_MSGLEN)
 				Com_Error (ERR_DROP, "SV_SendClientMessages: msglen > MAX_MSGLEN");
-			r = fread (msgbuf, msglen, 1, sv.demofile);
+			r = rfread (msgbuf, msglen, 1, sv.demofile);
 			if (r != 1)
 			{
 				SV_DemoCompleted ();

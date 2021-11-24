@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //define	PARANOID			// speed sapping error checking
 
+#include <libretro_file.h>
+
 #include "../qcommon/qcommon.h"
 #include "../game/header/game.h"
 
@@ -62,7 +64,7 @@ typedef struct
 	byte		multicast_buf[MAX_MSGLEN];
 
 	// demo server information
-	FILE		*demofile;
+	RFILE		*demofile;
 	qboolean	timedemo;		// don't time sync
 } server_t;
 
@@ -175,7 +177,7 @@ typedef struct
 	challenge_t	challenges[MAX_CHALLENGES];	// to prevent invalid IPs from connecting
 
 	// serverrecord values
-	FILE		*demofile;
+	RFILE		*demofile;
 	sizebuf_t	demo_multicast;
 	byte		demo_multicast_buf[MAX_MSGLEN];
 } server_static_t;

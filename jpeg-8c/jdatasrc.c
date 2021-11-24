@@ -15,6 +15,8 @@
  * than 8 bits on your machine, you may need to do some tweaking.
  */
 
+#include <libretro_file.h>
+
 /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -26,7 +28,7 @@
 typedef struct {
   struct jpeg_source_mgr pub;	/* public fields */
 
-  FILE * infile;		/* source stream */
+  RFILE * infile;		/* source stream */
   JOCTET * buffer;		/* start of buffer */
   boolean start_of_file;	/* have we gotten any data yet? */
 } my_source_mgr;
@@ -206,7 +208,7 @@ term_source (j_decompress_ptr cinfo)
  */
 
 GLOBAL(void)
-jpeg_stdio_src (j_decompress_ptr cinfo, FILE * infile)
+jpeg_stdio_src (j_decompress_ptr cinfo, RFILE * infile)
 {
   my_src_ptr src;
 

@@ -10,6 +10,8 @@
 #ifndef ZAERO_SHARED_H
 #define ZAERO_SHARED_H
 
+#include <libretro_file.h>
+
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -1075,7 +1077,7 @@ typedef struct
 
 extern int vidref_val;
 
-size_t verify_fread(void *, size_t, size_t, FILE *);
-size_t verify_fwrite(void *, size_t, size_t, FILE *);
+size_t verify_fread(void *, size_t, size_t, RFILE *);
+size_t verify_fwrite(void *, size_t, size_t, RFILE *);
 
 #endif /* ZAERO_SHARED_H */

@@ -5,6 +5,8 @@
  * =======================================================================
  */
 
+#include <libretro_file.h>
+
 #include "header/local.h"
 
 #define MAX_IPFILTERS 1024
@@ -258,7 +260,7 @@ SVCmd_ListIP_f(void)
 void
 SVCmd_WriteIP_f(void)
 {
-	FILE *f;
+	RFILE *f;
 	char name[MAX_OSPATH];
 	byte b[4];
 	int i;
@@ -277,7 +279,7 @@ SVCmd_WriteIP_f(void)
 
 	gi.cprintf(NULL, PRINT_HIGH, "Writing %s.\n", name);
 
-	f = fopen(name, "wb");
+	f = rfopen(name, "wb");
 
 	if (!f)
 	{
@@ -285,16 +287,16 @@ SVCmd_WriteIP_f(void)
 		return;
 	}
 
-	fprintf(f, "set filterban %d\n", (int)filterban->value);
+	rfprintf(f, "set filterban %d\n", (int)filterban->value);
 
 	for (i = 0; i < numipfilters; i++)
 	{
 		/* PVS NOTE: maybe use memcpy instead? */
 		*(unsigned *)b = ipfilters[i].compare;
-		fprintf(f, "sv addip %i.%i.%i.%i\n", b[0], b[1], b[2], b[3]);
+		rfprintf(f, "sv addip %i.%i.%i.%i\n", b[0], b[1], b[2], b[3]);
 	}
 
-	fclose(f);
+	rfclose(f);
 }
 
 /*

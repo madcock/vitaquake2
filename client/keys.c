@@ -17,6 +17,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
+#include <libretro_file.h>
+
 #include <ctype.h>
 #include "client.h"
 
@@ -613,13 +616,13 @@ Key_WriteBindings
 Writes lines containing "bind key value"
 ============
 */
-void Key_WriteBindings (FILE *f)
+void Key_WriteBindings (RFILE *f)
 {
 	int		i;
 
 	for (i=0 ; i<256 ; i++)
 		if (keybindings[i] && keybindings[i][0])
-			fprintf (f, "bind %s \"%s\"\n", Key_KeynumToString(i), keybindings[i]);
+			rfprintf (f, "bind %s \"%s\"\n", Key_KeynumToString(i), keybindings[i]);
 }
 
 
