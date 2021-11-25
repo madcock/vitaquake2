@@ -1,6 +1,6 @@
-LOCAL_PATH := $(call my-dir)
-
-CORE_DIR   := $(LOCAL_PATH)/..
+LOCAL_PATH   := $(call my-dir)
+CORE_DIR     := $(LOCAL_PATH)/..
+HAVE_CDAUDIO := 1
 
 include $(LOCAL_PATH)/../Makefile.common
 

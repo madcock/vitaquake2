@@ -256,7 +256,7 @@ include Makefile.common
 
 OBJECTS := $(SOURCES_C:.c=.o)
 
-CFLAGS   += -Wall -D__LIBRETRO__ $(fpic) -DHAVE_STB_VORBIS -DREF_HARD_LINKED -DRELEASE -DGAME_HARD_LINKED -DOSTYPE=\"$(OSTYPE)\" -DARCH=\"$(ARCH)\" -fsigned-char
+CFLAGS   += -Wall -D__LIBRETRO__ $(fpic) -DREF_HARD_LINKED -DRELEASE -DGAME_HARD_LINKED -DOSTYPE=\"$(OSTYPE)\" -DARCH=\"$(ARCH)\" -fsigned-char
 CXXFLAGS += -Wall -D__LIBRETRO__ $(fpic) -fpermissive
 
 ifeq ($(HAVE_OPENGL),1)
@@ -264,7 +264,7 @@ CFLAGS   += -DHAVE_OPENGL
 endif
 
 ifeq ($(HAVE_CDAUDIO),1)
-CFLAGS   += -DHAVE_CDAUDIO
+CFLAGS   += -DHAVE_CDAUDIO -DHAVE_STB_VORBIS
 endif
 
 ifeq ($(basegame),xatrix)
