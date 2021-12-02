@@ -221,6 +221,15 @@ else ifeq ($(platform), ctr)
     CXXFLAGS += $(CFLAGS) -std=gnu++11
     STATIC_LINKING = 1
     HAVE_OPENGL = 0
+# GCW0
+else ifeq ($(platform), gcw0)
+   TARGET := $(TARGET_NAME)_libretro.so
+   CC = /opt/gcw0-toolchain/usr/bin/mipsel-linux-gcc
+   AR = /opt/gcw0-toolchain/usr/bin/mipsel-linux-ar
+   fpic := -fPIC
+   SHARED := -shared -Wl,--version-script=$(CORE_DIR)/link.T -Wl,--no-undefined
+   CFLAGS += -DDINGUX -D_POSIX_C_SOURCE=199309L -fomit-frame-pointer -march=mips32 -mtune=mips32r2 -mhard-float
+   HAVE_OPENGL = 0
 else
    CC ?= gcc
    TARGET := $(TARGET_NAME)_libretro.dll

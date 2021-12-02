@@ -101,7 +101,13 @@ struct retro_core_option_v2_definition option_defs_us[] = {
 #endif
          { NULL, NULL },
       },
+#if defined(DINGUX)
+      "320x240"
+#elif defined(_3DS)
+      "400x240"
+#else
       "960x544"
+#endif
    },
    {
       "vitaquakeii_framerate",
@@ -112,6 +118,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       NULL,
       {
          { "auto", "Auto" },
+         { "30",   "30 fps" },
          { "50",   "50 fps" },
          { "60",   "60 fps" },
          { "72",   "72 fps" },
@@ -132,7 +139,11 @@ struct retro_core_option_v2_definition option_defs_us[] = {
          { "360",  "360 fps" },
          { NULL, NULL },
       },
+#if defined(DINGUX) || defined(_3DS)
+      "30"
+#else
       "auto"
+#endif
    },
    {
       "vitaquakeii_gamma",

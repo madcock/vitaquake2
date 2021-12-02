@@ -1103,8 +1103,14 @@ static void update_variables(bool startup)
             framerate = (unsigned)target_framerate;
 
 				/* Only discrete frame rates are permitted
-				 * > 'round' to a legal value */
-				if (framerate < 50)
+				 * > 'round' to a legal value
+				 * Note that 40 fps is unsupported (internal
+				 * SFX resampling fails at this framerate,
+				 * with images and aliases spinning out of
+				 * control...) */
+				if (framerate < 30)
+					framerate = 30;
+				else if ((framerate > 30) && (framerate < 60))
 					framerate = 50;
 				else if ((framerate > 50) && (framerate < 72))
 					framerate = 60;
@@ -1145,6 +1151,9 @@ static void update_variables(bool startup)
 
       switch (framerate)
       {
+         case 30:
+            framerate_ms = 33;
+            break;
          case 50:
             framerate_ms = 20;
             break;
@@ -1941,13 +1950,16 @@ static int16_t audio_buffer[AUDIO_BUFFER_SIZE];
 static int16_t audio_out_buffer[AUDIO_BUFFER_SIZE];
 static unsigned audio_buffer_ptr = 0;
 
+static unsigned audio_batch_frames_max = AUDIO_BUFFER_SIZE >> 1;
+
 static void audio_callback(void)
 {
    unsigned read_first;
    unsigned read_second;
-   unsigned samples_per_frame = (2 * AUDIO_SAMPLE_RATE) / framerate;
-   unsigned read_end          = audio_buffer_ptr + samples_per_frame;
-   int16_t *audio_out_ptr     = audio_out_buffer;
+   unsigned samples_per_frame      = (2 * AUDIO_SAMPLE_RATE) / framerate;
+   unsigned audio_frames_remaining = samples_per_frame >> 1;
+   unsigned read_end               = audio_buffer_ptr + samples_per_frame;
+   int16_t *audio_out_ptr          = audio_out_buffer;
    uintptr_t i;
 
    if (read_end > AUDIO_BUFFER_SIZE)
@@ -1970,7 +1982,28 @@ static void audio_callback(void)
    }
 
    CDAudio_Mix(audio_out_buffer, samples_per_frame >> 1, cdaudio_volume);
-   audio_batch_cb(audio_out_buffer, samples_per_frame >> 1);
+
+   /* At 30 fps, we generate (2 * 1470) samples
+    * per frame. This may exceed the capacity of
+    * the frontend audio batch callback; if so,
+    * write the audio samples in chunks */
+   audio_out_ptr = audio_out_buffer;
+   do
+   {
+      unsigned audio_frames_to_write =
+            (audio_frames_remaining > audio_batch_frames_max) ?
+                  audio_batch_frames_max : audio_frames_remaining;
+      unsigned audio_frames_written  =
+            audio_batch_cb(audio_out_ptr, audio_frames_to_write);
+
+      if ((audio_frames_written < audio_frames_to_write) &&
+          (audio_frames_written > 0))
+         audio_batch_frames_max = audio_frames_written;
+
+      audio_frames_remaining -= audio_frames_to_write;
+      audio_out_ptr          += audio_frames_to_write << 1;
+   }
+   while (audio_frames_remaining > 0);
 }
 
 uint64_t initial_tick;

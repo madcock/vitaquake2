@@ -85,6 +85,10 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/vita-static.yml'
 
+  # OpenDingux
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/dingux-mips32.yml'
+
   # tvOS (AppleTV)
   - project: 'libretro-infrastructure/ci-templates'
     file: '/tvos-arm64.yml'
@@ -213,6 +217,18 @@ libretro-build-vita:
     - .libretro-vita-static-retroarch-master
     - .core-defs
 
+# OpenDingux
+libretro-build-dingux-mips32:
+  extends:
+    - .libretro-dingux-mips32-make-default
+    - .core-defs
+
+# OpenDingux Beta
+libretro-build-dingux-odbeta-mips32:
+  extends:
+    - .libretro-dingux-odbeta-mips32-make-default
+    - .core-defs
+
 #################################### MISC ##################################
 # Emscripten
 libretro-build-emscripten:
@@ -329,6 +345,18 @@ libretro-build-libnx-aarch64-rogue:
 libretro-build-vita-rogue:
   extends:
     - .libretro-vita-static-retroarch-master
+    - .core-defs-rogue
+
+# OpenDingux
+libretro-build-dingux-mips32-rogue:
+  extends:
+    - .libretro-dingux-mips32-make-default
+    - .core-defs-rogue
+
+# OpenDingux Beta
+libretro-build-dingux-odbeta-mips32-rogue:
+  extends:
+    - .libretro-dingux-odbeta-mips32-make-default
     - .core-defs-rogue
 
 #################################### MISC ##################################
@@ -449,6 +477,18 @@ libretro-build-vita-xatrix:
     - .libretro-vita-static-retroarch-master
     - .core-defs-xatrix
 
+# OpenDingux
+libretro-build-dingux-mips32-xatrix:
+  extends:
+    - .libretro-dingux-mips32-make-default
+    - .core-defs-xatrix
+
+# OpenDingux Beta
+libretro-build-dingux-odbeta-mips32-xatrix:
+  extends:
+    - .libretro-dingux-odbeta-mips32-make-default
+    - .core-defs-xatrix
+
 #################################### MISC ##################################
 # Emscripten
 libretro-build-emscripten-xatrix:
@@ -565,6 +605,18 @@ libretro-build-libnx-aarch64-zaero:
 libretro-build-vita-zaero:
   extends:
     - .libretro-vita-static-retroarch-master
+    - .core-defs-zaero
+
+# OpenDingux
+libretro-build-dingux-mips32-zaero:
+  extends:
+    - .libretro-dingux-mips32-make-default
+    - .core-defs-zaero
+
+# OpenDingux Beta
+libretro-build-dingux-odbeta-mips32-zaero:
+  extends:
+    - .libretro-dingux-odbeta-mips32-make-default
     - .core-defs-zaero
 
 #################################### MISC ##################################

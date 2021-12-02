@@ -23,8 +23,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <stdint.h>
 
-#define AUDIO_SAMPLE_RATE 48000
-#define AUDIO_BUFFER_SIZE  2048
+#define AUDIO_SAMPLE_RATE 44100
+/* Audio buffer must be sufficient for operation
+ * at 30 fps
+ * > (2 * 44100) / 30 = 2490 total samples
+ * > buffer size must be a power of 2
+ * > Nearest power of 2 to 2490 is 4096 */
+#define AUDIO_BUFFER_SIZE  4096
 
 int  CDAudio_Init(void);
 void CDAudio_Shutdown(void);
