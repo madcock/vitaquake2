@@ -417,6 +417,8 @@ SCR_DrawCrosshair
 */
 void SCR_DrawCrosshair (void)
 {
+	float scale;
+
 	if (!crosshair->value)
 		return;
 
@@ -429,8 +431,12 @@ void SCR_DrawCrosshair (void)
 	if (!crosshair_pic[0])
 		return;
 
-	re.DrawPic (scr_vrect.x + ((scr_vrect.width - crosshair_width)>>1)
-	, scr_vrect.y + ((scr_vrect.height - crosshair_height)>>1), crosshair_pic, 1.0f);
+	scale = SCR_GetMenuScale();
+
+	re.DrawPic (
+			scr_vrect.x + ((scr_vrect.width  - (int)(crosshair_width  * scale)) >> 1),
+			scr_vrect.y + ((scr_vrect.height - (int)(crosshair_height * scale)) >> 1),
+			crosshair_pic, scale);
 }
 
 /*

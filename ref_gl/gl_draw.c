@@ -243,18 +243,19 @@ void Draw_Fill (int x, int y, int w, int h, int c)
 	union
 	{
 		unsigned	c;
-		byte		v[4];
+		byte     v[4];
 	} color;
 
-	if ( (unsigned)c > 255)
+	if ((unsigned)c > 255)
 		ri.Sys_Error (ERR_FATAL, "Draw_Fill: bad color");
 
 	color.c = d_refgl_8to24table[c];
-	
-	DrawQuad_NoTex(x, y, w, h, (color.v[0]) / 255.0f, (color.v[1]) / 255.0f, (color.v[2]) / 255.0f, 1.0f);
-	
-	qglColor4f(1,1,1,1);
 
+	qglDisable(GL_TEXTURE_2D);
+	DrawQuad_NoTex(x, y, w, h, (color.v[0]) / 255.0f, (color.v[1]) / 255.0f, (color.v[2]) / 255.0f, 1.0f);
+	glEnable(GL_TEXTURE_2D);
+
+	qglColor4f(1,1,1,1);
 }
 
 /*============================================================================= */
@@ -267,19 +268,12 @@ Draw_FadeScreen
 */
 void Draw_FadeScreen (int transparent)
 {
-	/* TODO/FIXME: DrawQuad_NoTex() is currently
-	 * non-functional, so we have to ignore 'transparent'
-	 * and just clear the screen... */
-#if 0
+	qglDisable(GL_TEXTURE_2D);
 	qglEnable (GL_BLEND);
-	DrawQuad_NoTex(0, 0, vid.width, vid.height, 0, 0, 0, 0.8f);
+	DrawQuad_NoTex(0, 0, vid.width, vid.height, 0, 0, 0, transparent ? 0.8f : 1.0f);
 	qglColor4f (1,1,1,1);
+	glEnable(GL_TEXTURE_2D);
 	qglDisable (GL_BLEND);
-#endif
-
-	qglClearColor ((float)0x0f / 255.0f, (float)0x0c / 255.0f, (float)0x07 / 255.0f, 1.0);
-	qglClear (GL_COLOR_BUFFER_BIT);
-	qglClearColor (1, 0, 0.5, 0.5);
 }
 
 

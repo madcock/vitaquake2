@@ -141,6 +141,7 @@ extern cvar_t	*vid_ref;
 cvar_t  *gl_xflip;
 
 extern int scr_width;
+extern int scr_height;
 
 /*
 =================
@@ -925,9 +926,12 @@ static void R_RenderFrame (refdef_t *fd)
 
 extern float libretro_gamma;
 extern float libretro_gl_modulate;
+extern int VID_GetMode ( int width, int height );
 
 void R_Register( void )
 {
+	int video_mode;
+
 	r_lefthand = ri.Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
 	r_norefresh = ri.Cvar_Get ("r_norefresh", "0", 0);
 	r_refgl_fullbright = ri.Cvar_Get ("r_fullbright", "0", 0);
@@ -955,23 +959,12 @@ void R_Register( void )
 
 	gl_log = ri.Cvar_Get( "gl_log", "0", 0 );
 	gl_bitdepth = ri.Cvar_Get( "gl_bitdepth", "0", 0 );
-	gl_mode = ri.Cvar_Get( "gl_mode", "3", CVAR_ARCHIVE );
-	
-	switch (scr_width) {
-		case 960:
-			ri.Cvar_SetValue( "gl_mode", 3 );
-			break;
-		case 720:
-			ri.Cvar_SetValue( "gl_mode", 2 );
-			break;
-		case 640:
-			ri.Cvar_SetValue( "gl_mode", 1 );
-			break;
-		default:
-			ri.Cvar_SetValue( "gl_mode", 0 );
-			break;
-	}
-	
+	gl_mode = ri.Cvar_Get( "gl_mode", "8", CVAR_ARCHIVE );
+
+	video_mode = VID_GetMode ( scr_width, scr_height );
+	video_mode = (video_mode < 0) ? 8 : video_mode;
+	ri.Cvar_SetValue( "gl_mode", video_mode );
+
 	gl_lightmap = ri.Cvar_Get ("gl_lightmap", "0", 0);
 	gl_shadows = ri.Cvar_Get ("gl_shadows", "0", CVAR_ARCHIVE );
 	gl_dynamic = ri.Cvar_Get ("gl_dynamic", "1", 0);

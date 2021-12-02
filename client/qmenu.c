@@ -23,13 +23,30 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client.h"
 #include "qmenu.h"
 
-extern int scr_width;
-
 extern bool is_soft_render;
+extern int scr_height;
+extern float scr_aspect;
+extern float libretro_hud_scale;
 
 float SCR_GetMenuScale(void)
 {
-	return is_soft_render ? 1 : scr_width < 960 ? 1.0f : ((scr_width * 1.0f) / 960.0f);
+	float aspect_correction;
+
+	/* When using the hardware renderer,
+	 * start increasing the scale once screen
+	 * height exceeds 240 (i.e. assume baseline
+	 * resolution of 320x240) */
+	if (is_soft_render || (scr_height <= 240))
+		return 1.0f;
+
+	/* If screen aspect ratio is less than 4/3,
+	 * have to reduce hud scale or the left/right
+	 * edges of the display may be cropped */
+	aspect_correction = (scr_aspect < (4.0f / 3.0f)) ?
+			scr_aspect * (3.0f / 4.0f) : 1.0f;
+
+	return (((((float)scr_height / 240.0f) - 1.0f) * libretro_hud_scale) + 1.0f) *
+			aspect_correction;
 }
 
 static void	 Action_DoEnter( menuaction_s *a );
@@ -433,11 +450,19 @@ void Menu_Draw( menuframework_s *menu )
 	{
 		if ( item->flags & QMF_LEFT_JUSTIFY )
 		{
-			Draw_Char( menu->x + (item->x / scale - 24 + item->cursor_offset) * scale, (menu->y + item->y) * scale, 12 + ( ( int ) ( Sys_Milliseconds()/250 ) & 1 ) , scale);
+			Draw_Char(
+					menu->x + (item->x / scale - 24 + item->cursor_offset) * scale,
+					(menu->y + item->y) * scale,
+					12 + ( ( int ) ( Sys_Milliseconds()/250 ) & 1 ),
+					scale);
 		}
 		else
 		{
-			Draw_Char( menu->x + item->cursor_offset  * scale, (menu->y + item->y) * scale, 12 + ( ( int ) ( Sys_Milliseconds()/250 ) & 1 ) , scale);
+			Draw_Char(
+					menu->x + item->cursor_offset  * scale,
+					(menu->y + item->y) * scale,
+					12 + ( ( int ) ( Sys_Milliseconds()/250 ) & 1 ),
+					scale);
 		}
 	}
 

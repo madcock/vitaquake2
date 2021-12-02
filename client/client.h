@@ -148,7 +148,7 @@ typedef struct
 	RFILE		*cinematic_file;
 	int			cinematictime;		// cls.realtime for first cinematic frame
 	int			cinematicframe;
-	char		cinematicpalette[768];
+	byte		cinematicpalette[768];
 	qboolean	cinematicpalette_active;
 
 	//
@@ -296,6 +296,8 @@ extern	cvar_t	*cl_paused;
 extern	cvar_t	*cl_timedemo;
 
 extern	cvar_t	*cl_vwep;
+
+extern	cvar_t	*cin_force43;
 
 typedef struct
 {

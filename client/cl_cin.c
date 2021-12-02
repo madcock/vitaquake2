@@ -22,6 +22,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client.h"
 
+cvar_t *cin_force43;
+extern bool is_soft_render;
+
 typedef struct
 {
 	byte	*data;
@@ -535,6 +538,43 @@ void SCR_RunCinematic (void)
 
 /*
 ==================
+SCR_DarkestColor
+
+Returns the index of the 'darkest' colour value
+in the cinematic palette
+==================
+*/
+static int SCR_DarkestColor(void)
+{
+	float min_luma = 255.0f;
+	int min_index   = 0;
+	int i;
+
+	/* Luminosity factors: photometric/digital ITU BT.709 */
+	static const float luma_r = 0.2126f;
+	static const float luma_g = 0.7152f;
+	static const float luma_b = 0.0722f;
+
+	for(i = 0; i < 255; i++)
+	{
+		/* Get 'brightness' of current palette colour */
+		float current_luma =
+				(cl.cinematicpalette[(i * 3)    ] * luma_r) +
+				(cl.cinematicpalette[(i * 3) + 1] * luma_g) +
+				(cl.cinematicpalette[(i * 3) + 2] * luma_b);
+
+		if (current_luma < min_luma)
+		{
+			min_luma = current_luma;
+			min_index = i;
+		}
+	}
+
+	return min_index;
+}
+
+/*
+==================
 SCR_DrawCinematic
 
 Returns true if a cinematic is active, meaning the view rendering
@@ -543,13 +583,15 @@ should be skipped
 */
 qboolean SCR_DrawCinematic (void)
 {
-	if (cl.cinematictime <= 0)
-	{
-		return false;
-	}
+	int x, y, w, h;
+	static int darkest_color = 0;
 
+	if (cl.cinematictime <= 0)
+		return false;
+
+	/* Blank screen and pause if menu is up */
 	if (cls.key_dest == key_menu)
-	{	// blank screen and pause if menu is up
+	{
 		re.CinematicSetPalette(NULL);
 		cl.cinematicpalette_active = false;
 		return true;
@@ -559,13 +601,51 @@ qboolean SCR_DrawCinematic (void)
 	{
 		re.CinematicSetPalette(cl.cinematicpalette);
 		cl.cinematicpalette_active = true;
+
+		/* If we are using the software renderer then
+		 * each time the cinematic palette is set we
+		 * must find the 'darkest' colour */
+		if (is_soft_render)
+			darkest_color = SCR_DarkestColor();
 	}
 
 	if (!cin.pic)
 		return true;
 
-	re.DrawStretchRaw (0, 0, viddef.width, viddef.height,
-		cin.width, cin.height, cin.pic);
+	if (cin_force43->value)
+	{
+		int border_color = is_soft_render ? darkest_color : 0;
+
+		w  = viddef.height * 4 / 3;
+		w  = (w > viddef.width) ? viddef.width : w;
+		w &= ~3;
+		h  = w * 3 / 4;
+		x  = (viddef.width - w) >> 1;
+		y  = (viddef.height - h) >> 1;
+
+		/* Draw border, if required */
+		if (x > 0)
+			re.DrawFill(0, 0, x, viddef.height, border_color);
+
+		if (x + w < viddef.width)
+			re.DrawFill(x + w, 0, viddef.width - (x + w), viddef.height, border_color);
+
+		if (y > 0)
+			re.DrawFill(x, 0, w, y, border_color);
+
+		if (y + h < viddef.height)
+			re.DrawFill(x, y + h, w, viddef.height - (y + h), border_color);
+	}
+	else
+	{
+		x = 0;
+		y = 0;
+		w = viddef.width;
+		h = viddef.height;
+	}
+
+	/* Draw video frame */
+	re.DrawStretchRaw(x, y, w, h, cin.width, cin.height, cin.pic);
 
 	return true;
 }
