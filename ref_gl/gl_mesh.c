@@ -24,6 +24,8 @@ typedef struct
 	unsigned		width, height;			/* coordinates from main game */
 } viddef_t;
 
+#define RF_NOSHADOW 8192 /* don't draw a shadow */
+
 #include "gl_local.h"
 
 /*
@@ -251,25 +253,23 @@ void GL_DrawAliasFrameLerp (dmdl_t *paliashdr, float backlerp)
 GL_DrawAliasShadow
 =============
 */
-extern	vec3_t			gl_lightspot;
+extern vec3_t gl_lightspot;
 
 void GL_DrawAliasShadow (dmdl_t *paliashdr, int posenum)
 {
    int prim;
-   float* pPos;
-   vec3_t	point;
-   int		count;
-   float lheight = currententity->origin[2] - gl_lightspot[2];
-#if 0
-   daliasframe_t *frame = (daliasframe_t *)((byte *)paliashdr + paliashdr->ofs_frames 
-         + currententity->frame * paliashdr->framesize);
-   dtrivertx_t *verts = frame->verts;
-#endif
-   float height = 0;
-   int *order = (int *)((byte *)paliashdr + paliashdr->ofs_glcmds);
+   vec3_t point;
+   float *pPos   = NULL;
+   int *order    = NULL;
+   int count     = 0;
+   float height  = 0.0f;
+   float lheight = 0.0f;
 
-   height = -lheight + 1.0;
+   lheight = currententity->origin[2] - gl_lightspot[2];
+   order   = (int *)((byte *)paliashdr + paliashdr->ofs_glcmds);
+   height  = -lheight + 1.0;
 
+   /* Stencilbuffer shadows (force enabled in libretro.c) */
    qglEnable(GL_STENCIL_TEST);
    qglStencilFunc(GL_EQUAL, 1, 2);
    qglStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
@@ -277,10 +277,13 @@ void GL_DrawAliasShadow (dmdl_t *paliashdr, int posenum)
    while (1)
    {
       int c;
+
       /* get the vertex count and primitive type */
       count = *order++;
+
       if (!count)
-         break;		/* done */
+         break; /* done */
+
       if (count < 0)
       {
          count = -count;
@@ -291,40 +294,31 @@ void GL_DrawAliasShadow (dmdl_t *paliashdr, int posenum)
 
       c    = count;
       pPos = gVertexBuffer;
+
       do
       {
-         /* normals and vertexes come from the frame list */
-         /*
-            point[0] = verts[order[2]].v[0] * frame->scale[0] + frame->translate[0];
-            point[1] = verts[order[2]].v[1] * frame->scale[1] + frame->translate[1];
-            point[2] = verts[order[2]].v[2] * frame->scale[2] + frame->translate[2];
-            */
+         /* Normals and vertexes come from the frame list */
+         memcpy(point, s_lerped[order[2]], sizeof(point));
 
-         memcpy( point, s_lerped[order[2]], sizeof( point )  );
-
-         point[0] -= shadevector[0]*(point[2]+lheight);
-         point[1] -= shadevector[1]*(point[2]+lheight);
+         point[0] -= shadevector[0] * (point[2] + lheight);
+         point[1] -= shadevector[1] * (point[2] + lheight);
          point[2] = height;
-#if 0
-         height -= 0.001;
-#endif
+
          *gVertexBuffer++ = point[0];
          *gVertexBuffer++ = point[1];
          *gVertexBuffer++ = point[2];
 
          order += 3;
-
-         /*			verts++; */
-
-      } while (--count);
+      }
+      while (--count);
 
       qglDisableClientState(GL_TEXTURE_COORD_ARRAY);
-      qglColor4f(0,0,0,0.5);
       glVertexAttribPointerMapped(0, pPos);
       GL_DrawPolygon(prim, c);
       qglEnableClientState(GL_TEXTURE_COORD_ARRAY);
    }
 
+   /* Stencilbuffer shadows (force enabled in libretro.c) */
    qglDisable(GL_STENCIL_TEST);
 }
 
@@ -761,14 +755,19 @@ void R_DrawAliasModel (entity_t *e)
 	if (currententity->flags & RF_DEPTHHACK)
 		qglDepthRange (gldepthmin, gldepthmax);
 
-	if (gl_shadows->value && !(currententity->flags & (RF_TRANSLUCENT | RF_WEAPONMODEL)))
+	if (gl_shadows->value && !(currententity->flags & (RF_TRANSLUCENT | RF_WEAPONMODEL | RF_NOSHADOW)))
 	{
 		qglPushMatrix ();
-		R_RotateForEntity (e);
-		qglDisableClientState(GL_TEXTURE_COORD_ARRAY);
+
+		/* Don't rotate shadows on ungodly axes */
+		glTranslatef(currententity->origin[0], currententity->origin[1], currententity->origin[2]);
+		glRotatef(currententity->angles[1], 0, 0, 1);
+
+		qglDisable(GL_TEXTURE_2D);
 		qglEnable (GL_BLEND);
+		qglColor4f(0, 0, 0, 0.5f);
 		GL_DrawAliasShadow (paliashdr, currententity->frame );
-		qglEnableClientState(GL_TEXTURE_COORD_ARRAY);
+		qglEnable(GL_TEXTURE_2D);
 		qglDisable (GL_BLEND);
 		qglPopMatrix ();
 	}

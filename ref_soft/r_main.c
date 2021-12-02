@@ -1212,13 +1212,8 @@ static void SWR_CinematicSetPalette( const unsigned char *palette )
 	int		*d;
 
 	// clear screen to black to avoid any palette flash
-	w = abs(vid.rowbytes)>>2;	// stupid negative pitch win32 stuff...
-	for (i=0 ; i<vid.height ; i++, d+=w)
-	{
-		d = (int *)(vid.buffer + i*vid.rowbytes);
-		for (j=0 ; j<w ; j++)
-			d[j] = 0;
-	}
+	memset(vid.buffer, 0, vid.height * vid.rowbytes);
+
 	// flush it to the screen
 	SWimp_EndFrame ();
 

@@ -54,6 +54,7 @@ bool cdaudio_enabled = true;
 float cdaudio_volume = 0.5f;
 
 float libretro_gamma = 1.0f;
+float libretro_hud_scale = 0.5f;
 #ifdef HAVE_OPENGL
 extern cvar_t *gl_shadows;
 static bool libretro_shared_context = false;
@@ -65,6 +66,10 @@ static const bool enable_opengl = false;
 extern cvar_t *sw_texfilt;
 
 refimport_t ri;
+
+extern void M_PopMenu( void );
+extern void M_ForceMenuOff( void );
+extern int m_menudepth;
 
 /* TODO/FIXME - should become float for better accuracy */
 int      framerate    = 60;
@@ -443,7 +448,11 @@ bool shutdown_core = false;
 netadr_t	net_local_adr;
 
 extern uint64_t rumble_tick;
-int scr_width = 960, scr_height = 544;
+
+int scr_width = 960;
+int scr_height = 544;
+float scr_aspect = 960.0f / 544.0f;
+
 void *GetGameAPI (void *import);
 qboolean	NET_CompareAdr (netadr_t a, netadr_t b)
 {
@@ -1184,28 +1193,6 @@ static void update_variables(bool startup)
 				break;
       }
 
-      var.key = "vitaquakeii_resolution";
-      var.value = NULL;
-
-      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && !initial_resolution_set)
-      {
-         char *pch;
-         char str[100];
-         snprintf(str, sizeof(str), "%s", var.value);
-
-         pch = strtok(str, "x");
-         if (pch)
-            scr_width = strtoul(pch, NULL, 0);
-         pch = strtok(NULL, "x");
-         if (pch)
-            scr_height = strtoul(pch, NULL, 0);
-
-         if (log_cb)
-            log_cb(RETRO_LOG_INFO, "Got size: %u x %u.\n", scr_width, scr_height);
-
-         initial_resolution_set = true;
-      }
-
 		var.key = "vitaquakeii_gamma";
 		var.value = NULL;
 		libretro_gamma = 1.0f;
@@ -1262,10 +1249,65 @@ static void update_variables(bool startup)
 			option_display.key = "vitaquakeii_gl_shadows";
 			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
 
-			option_display.key = "vitaquakeii_gl_gl_xflip";
+			option_display.key = "vitaquakeii_gl_xflip";
+			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
+
+			option_display.key = "vitaquakeii_gl_hud_scale";
 			environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY, &option_display);
 		}
 #endif
+		var.key = "vitaquakeii_resolution";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && !initial_resolution_set)
+		{
+			char *pch;
+			char str[100];
+			snprintf(str, sizeof(str), "%s", var.value);
+
+			pch = strtok(str, "x");
+			if (pch)
+				scr_width = strtoul(pch, NULL, 0);
+			pch = strtok(NULL, "x");
+			if (pch)
+				scr_height = strtoul(pch, NULL, 0);
+
+			/* Software renderer caps out at 1920x1200,
+			 * and cannot handle aspect ratios below 4/3 */
+			if (!enable_opengl)
+			{
+				bool invalid_resolution = false;
+
+				if ((scr_width == 1280) &&
+					 (scr_height == 1024))
+				{
+					/* Fall back to nearest 4:3 resolution */
+					scr_width  = 1024;
+					scr_height = 768;
+					invalid_resolution = true;
+				}
+				else if ((scr_width > 1920) ||
+							(scr_height > 1200))
+				{
+					/* Fall back to highest supported resolution */
+					scr_width  = 1920;
+					scr_height = 1200;
+					invalid_resolution = true;
+				}
+
+				if (invalid_resolution && log_cb)
+					log_cb(RETRO_LOG_WARN,
+							"Specified resolution unsupported by software renderer - falling back to %i x %i.\n",
+							scr_width, scr_height);
+			}
+
+			scr_aspect = (float)scr_width / (float)scr_height;
+
+			if (log_cb)
+				log_cb(RETRO_LOG_INFO, "Got size: %i x %i.\n", scr_width, scr_height);
+
+			initial_resolution_set = true;
+		}
    }
    
 	var.key = "vitaquakeii_invert_y_axis";
@@ -1318,6 +1360,9 @@ static void update_variables(bool startup)
 	/* We need Qcommon_Init to be executed to be able to set Cvars */
 	if (!startup)
 	{
+#ifdef HAVE_OPENGL
+		float libretro_hud_scale_prev;
+#endif
 		var.key = "vitaquakeii_rumble";
 		var.value = NULL;
 
@@ -1338,6 +1383,17 @@ static void update_variables(bool startup)
 				Cvar_SetValue( "cl_run", 0 );
 			else
 				Cvar_SetValue( "cl_run", 1 );
+		}
+
+		var.key = "vitaquakeii_aimfix";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			if (strcmp(var.value, "disabled") == 0)
+				Cvar_SetValue( "aimfix", 0 );
+			else
+				Cvar_SetValue( "aimfix", 1 );
 		}
 
 		var.key = "vitaquakeii_mouse_sensitivity";
@@ -1376,7 +1432,7 @@ static void update_variables(bool startup)
 				Cvar_Set( "gl_texturemode", "GL_NEAREST_MIPMAP_LINEAR" );
 		}
 
-		var.key = "vitaquakeii_gl_gl_xflip";
+		var.key = "vitaquakeii_gl_xflip";
 		var.value = NULL;
 
 		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
@@ -1386,6 +1442,32 @@ static void update_variables(bool startup)
 			else
 				Cvar_SetValue( "gl_xflip", 1 );
 		}
+
+		var.key = "vitaquakeii_gl_hud_scale";
+		var.value = NULL;
+		libretro_hud_scale_prev = libretro_hud_scale;
+		libretro_hud_scale = 0.5f;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			libretro_hud_scale = atof(var.value);
+
+			if (libretro_hud_scale > 1.0f)
+				libretro_hud_scale = 1.0f;
+			if (libretro_hud_scale < 0.0f)
+				libretro_hud_scale = 0.0f;
+		}
+
+		/* TODO/FIXME: The menu does not at present
+		 * support dynamic scaling (multiple values
+		 * are set upon menu initialisation instead
+		 * of while drawing the elements). This is
+		 * tedious to fix, so in the meantime we
+		 * will simply close the menu if it is currently
+		 * open and the scale has changed */
+		if ((libretro_hud_scale != libretro_hud_scale_prev) &&
+			 (m_menudepth > 0))
+			M_ForceMenuOff();
 #endif
 
 		var.key = "vitaquakeii_xhair";
@@ -1395,10 +1477,14 @@ static void update_variables(bool startup)
 		{
 			if (strcmp(var.value, "disabled") == 0)
 				Cvar_SetValue( "crosshair", 0 );
+			else if (strcmp(var.value, "dot") == 0)
+				Cvar_SetValue( "crosshair", 2 );
+			else if (strcmp(var.value, "angle") == 0)
+				Cvar_SetValue( "crosshair", 3 );
 			else
 				Cvar_SetValue( "crosshair", 1 );
 		}
-		
+
 		var.key = "vitaquakeii_fps";
 		var.value = NULL;
 
@@ -1436,6 +1522,17 @@ static void update_variables(bool startup)
 				Cvar_SetValue( "hand", 2 );
 			else
 				Cvar_SetValue( "hand", 3 );
+		}
+
+		var.key = "vitaquakeii_cin_force43";
+		var.value = NULL;
+
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+		{
+			if (strcmp(var.value, "disabled") == 0)
+				Cvar_SetValue( "cin_force43", 0 );
+			else
+				Cvar_SetValue( "cin_force43", 1 );
 		}
 	}
 }
@@ -1489,7 +1586,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
    info->geometry.base_height  = scr_height;
    info->geometry.max_width    = scr_width;
    info->geometry.max_height   = scr_height;
-   info->geometry.aspect_ratio = (scr_width * 1.0f) / (scr_height * 1.0f);
+   info->geometry.aspect_ratio = scr_aspect;
 }
 
 void retro_set_environment(retro_environment_t cb)
@@ -1947,8 +2044,6 @@ cvar_t *gl_mode;
 extern cvar_t *gl_driver;
 #endif
 
-extern void M_ForceMenuOff( void );
-
 static menuframework_s  s_opengl_menu;
 static menuframework_s *s_current_menu;
 
@@ -2018,26 +2113,56 @@ void VID_NewWindow (int width, int height)
 */
 typedef struct vidmode_s
 {
-    const char *description;
-    int         width, height;
-    int         mode;
+   const char *description;
+   int         width;
+   int         height;
 } vidmode_t;
 
 vidmode_t vid_modes[] =
 {
-   { "Mode 0: 480x272",     480, 272,   0 },
-   { "Mode 1: 640x368",     640, 368,   1 },
-   { "Mode 2: 720x408",     720, 408,   2 },
-   { "Mode 3: 960x544",     960, 544,   3 },
-   { "Mode 4: 1280x720",   1280, 720,   4 },
-   { "Mode 5: 1920x1080",  1920,1080,   5 },
-   { "Mode 6: 2560x1440",  2560,1440,   6 },
-   { "Mode 7: 3840x2160",  3840,2160,   7 },
-   { "Mode 8: 5120x2880",  5120,2880,   8 },
-   { "Mode 9: 7680x4320",  7680,4320,   9 },
-   { "Mode 10: 15360x8640",  15360,8640,   10 }
+   { "Mode 0: 320x240",       320,  240 },
+   { "Mode 1: 400x240",       400,  240 },
+   { "Mode 2: 480x272",       480,  272 },
+   { "Mode 3: 512x384",       512,  384 },
+   { "Mode 4: 640x368",       640,  368 },
+   { "Mode 5: 640x480",       640,  480 },
+   { "Mode 6: 720x408",       720,  408 },
+   { "Mode 7: 800x600",       800,  600 },
+   { "Mode 8: 960x544",       960,  544 },
+   { "Mode 9: 1024x768",     1024,  768 },
+   { "Mode 10: 1280x720",    1280,  720 },
+   { "Mode 11: 1280x800",    1280,  800 },
+   { "Mode 12: 1280x1024",   1280, 1024 },
+   { "Mode 13: 1360x768",    1360,  768 },
+   { "Mode 14: 1366x768",    1366,  768 },
+   { "Mode 15: 1440x900",    1440,  900 },
+   { "Mode 16: 1600x900",    1600,  900 },
+   { "Mode 17: 1680x1050",   1680, 1050 },
+   { "Mode 18: 1920x1080",   1920, 1080 },
+   { "Mode 19: 1920x1200",   1920, 1200 },
+   { "Mode 20: 2560x1080",   2560, 1080 },
+   { "Mode 21: 2560x1440",   2560, 1440 },
+   { "Mode 22: 2560x1600",   2560, 1600 },
+   { "Mode 23: 3440x1440",   3440, 1440 },
+   { "Mode 24: 3840x2160",   3840, 2160 },
+   { "Mode 25: 5120x2880",   5120, 2880 },
+   { "Mode 26: 7680x4320",   7680, 4320 },
+   { "Mode 27: 15360x8640", 15360, 8640 },
 };
+
 #define VID_NUM_MODES ( sizeof( vid_modes ) / sizeof( vid_modes[0] ) )
+
+int VID_GetMode ( int width, int height )
+{
+   int i;
+
+   for (i = 0; i < VID_NUM_MODES; i++)
+      if ((vid_modes[i].width == width) &&
+          (vid_modes[i].height == height))
+         return i;
+
+   return -1;
+}
 
 qboolean VID_GetModeInfo( int *width, int *height, int mode )
 {
@@ -2046,7 +2171,6 @@ qboolean VID_GetModeInfo( int *width, int *height, int mode )
 
    *width  = vid_modes[mode].width;
    *height = vid_modes[mode].height;
-   printf("VID_GetModeInfo %dx%d mode %d\n",*width,*height,mode);
 
    return true;
 }
@@ -2090,8 +2214,6 @@ static void ApplyChanges( void *unused )
 
 static void CancelChanges( void *unused )
 {
-   extern void M_PopMenu( void );
-
    M_PopMenu();
 }
 
@@ -2146,25 +2268,9 @@ void    VID_CheckChanges (void)
 
 void    VID_MenuInit (void)
 {
-   static const char *resolutions[] = 
-   {
-      "480x272",
-      "640x368",
-      "720x408",
-      "960x544",
-      0
-   };
-
    static const char *refs[] =
    {
       "openGL",
-      0
-   };
-
-   static const char *yesno_names[] =
-   {
-      "no",
-      "yes",
       0
    };
 
@@ -2177,20 +2283,8 @@ void    VID_MenuInit (void)
 
    s_screensize_slider.curvalue = scr_viewsize->value/10;
 
-   switch (viddef.width) {
-      case 960:
-         s_mode_list.curvalue = 3;
-         break;
-      case 720:
-         s_mode_list.curvalue = 2;
-         break;
-      case 640:
-         s_mode_list.curvalue = 1;
-         break;
-      default:
-         s_mode_list.curvalue = 0;
-         break;
-   }
+   s_mode_list.curvalue = VID_GetMode ( viddef.width, viddef.height );
+   s_mode_list.curvalue = (s_mode_list.curvalue < 0) ? 8 : s_mode_list.curvalue;
    Cvar_SetValue( "gl_mode", s_mode_list.curvalue );
 
    s_ref_list.curvalue = REF_OPENGL;
@@ -2211,10 +2305,7 @@ void    VID_MenuInit (void)
    s_cancel_action.generic.callback = CancelChanges;
 
    Menu_AddItem( &s_opengl_menu, ( void * ) &s_ref_list );
-
    Menu_AddItem( &s_opengl_menu, ( void * ) &s_cancel_action );
-
-
    Menu_Center( &s_opengl_menu );
 
    s_opengl_menu.x -= 8;
@@ -2281,26 +2372,31 @@ const char *VID_MenuKey( int k)
 
    return sound;
 }
+
 #ifdef HAVE_OPENGL
 int GLimp_SetMode( int *pwidth, int *pheight, int mode, qboolean fullscreen )
 {
-	/*int width, height;
+	/* Resolution (scr_width, scr_height) is set directly
+	 * by the libretro frontend, so checking the validity
+	 * of the 'mode' argument here is irrelevant */
+#if 0
+	int width, height;
 
-	ri.Con_Printf( PRINT_ALL, "Initializing OpenGL display\n");
-	ri.Con_Printf (PRINT_ALL, "...setting mode %d:", mode );
+	ri.Con_Printf ( PRINT_ALL, " %d %d\n", scr_width, scr_height );
+	ri.Con_Printf ( PRINT_ALL, "Initializing OpenGL display\n");
+	ri.Con_Printf ( PRINT_ALL, "...setting mode %d:", mode );
 
 	if ( !ri.Vid_GetModeInfo( &width, &height, mode ) )
 	{
 		ri.Con_Printf( PRINT_ALL, " invalid mode\n" );
 		return rserr_invalid_mode;
 	}
-*/
-	ri.Con_Printf( PRINT_ALL, " %d %d\n", scr_width, scr_height );
+#endif
 
 	/* destroy the existing window */
 	GLimp_Shutdown ();
 
-	*pwidth = scr_width;
+	*pwidth  = scr_width;
 	*pheight = scr_height;
 	ri.Vid_NewWindow (scr_width, scr_height);
 
@@ -2309,6 +2405,7 @@ int GLimp_SetMode( int *pwidth, int *pheight, int mode, qboolean fullscreen )
 	return rserr_ok;
 }
 #endif
+
 /* input.c */
 
 cvar_t *in_joystick;

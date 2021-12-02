@@ -195,15 +195,10 @@ static void SWR_Draw_StretchPicImplementation (int x, int y, int w, int h, image
 		{
 			f = 0;
 			fstep = pic->width*0x10000/w;
-			for (u=0 ; u<w ; u+=4)
+
+			for (u=0 ; u<w ; u++)
 			{
 				dest[u] = source[f>>16];
-				f += fstep;
-				dest[u+1] = source[f>>16];
-				f += fstep;
-				dest[u+2] = source[f>>16];
-				f += fstep;
-				dest[u+3] = source[f>>16];
 				f += fstep;
 			}
 		}
