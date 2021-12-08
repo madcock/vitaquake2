@@ -1080,6 +1080,61 @@ extern void IN_StopRumble();
 static int invert_y_axis = 1;
 
 /*============================================================================= */
+
+/* Only discrete framerates are permitted
+ * > Note that 40 fps is unsupported (internal
+ *   SFX resampling fails at this framerate,
+ *   with images and aliases spinning out of
+ *   control...) */
+static const unsigned supported_framerates[] = {
+   30,
+   50,
+   60,
+   72,
+   75,
+   90,
+   100,
+   119,
+   120,
+   144,
+   155,
+   160,
+   165,
+   180,
+   200,
+   240,
+   244,
+   300,
+   360
+};
+#define NUM_SUPPORTED_FRAMERATES (sizeof(supported_framerates) / sizeof(supported_framerates[0]))
+
+static unsigned sanitise_framerate(float target)
+{
+   unsigned target_int = (unsigned)(target + 0.5f);
+   unsigned i = 1;
+
+   if (target_int <= supported_framerates[0])
+      return supported_framerates[0];
+
+   if (target_int >= supported_framerates[NUM_SUPPORTED_FRAMERATES - 1])
+      return supported_framerates[NUM_SUPPORTED_FRAMERATES - 1];
+
+   while (i < NUM_SUPPORTED_FRAMERATES)
+   {
+      if (supported_framerates[i] > target_int)
+         break;
+
+      i++;
+   }
+
+   if ((supported_framerates[i] - target_int) <=
+       (target_int - supported_framerates[i - 1]))
+      return supported_framerates[i];
+
+   return supported_framerates[i - 1];
+}
+
 bool initial_resolution_set = false;
 static void update_variables(bool startup)
 {
@@ -1100,48 +1155,7 @@ static void update_variables(bool startup)
                      &target_framerate))
                target_framerate = 60.0f;
 
-            framerate = (unsigned)target_framerate;
-
-				/* Only discrete frame rates are permitted
-				 * > 'round' to a legal value
-				 * Note that 40 fps is unsupported (internal
-				 * SFX resampling fails at this framerate,
-				 * with images and aliases spinning out of
-				 * control...) */
-				if (framerate < 30)
-					framerate = 30;
-				else if ((framerate > 30) && (framerate < 60))
-					framerate = 50;
-				else if ((framerate > 50) && (framerate < 72))
-					framerate = 60;
-				else if ((framerate > 60) && (framerate < 75))
-					framerate = 72;
-				else if ((framerate > 72) && (framerate < 90))
-					framerate = 75;
-				else if ((framerate > 75) && (framerate < 100))
-					framerate = 90;
-				else if ((framerate > 90) && (framerate < 119))
-					framerate = 100;
-				else if ((framerate > 100) && (framerate < 120))
-					framerate = 119;
-				else if ((framerate > 120) && (framerate < 155))
-					framerate = 144;
-				else if ((framerate > 144) && (framerate < 160))
-					framerate = 155;
-				else if ((framerate > 155) && (framerate < 180))
-					framerate = 165;
-				else if ((framerate > 165) && (framerate < 200))
-					framerate = 180;
-				else if ((framerate > 180) && (framerate < 240))
-					framerate = 200;
-				else if ((framerate > 200) && (framerate < 244))
-					framerate = 240;
-				else if ((framerate > 240) && (framerate < 300))
-					framerate = 244;
-				else if ((framerate > 244) && (framerate < 360))
-					framerate = 300;
-				else if (framerate > 360)
-					framerate = 360;
+            framerate = sanitise_framerate(target_framerate);
          }
          else
             framerate = atoi(var.value);
