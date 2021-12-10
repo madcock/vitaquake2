@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <retro_dirent.h>
 #include <string/stdstring.h>
 #include <features/features_cpu.h>
+#include <array/rhmap.h>
 
 #include <libretro_core_options.h>
 
@@ -43,7 +44,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <glsm/glsm.h>
 #endif
 
-qboolean gl_set = false;
+static bool first_boot = true;
+static qboolean gl_set = false;
 bool is_soft_render = false;
 
 unsigned	sys_frame_time;
@@ -160,6 +162,8 @@ static bool libretro_supports_bitmasks = false;
 
 static void audio_callback(void);
 
+static unsigned quake_input_device = RETRO_DEVICE_JOYPAD;
+
 /* System analog stick range is -0x8000 to 0x8000 */
 #define ANALOG_RANGE 0x8000
 /* Default deadzone: 15% */
@@ -197,11 +201,11 @@ static struct retro_input_descriptor input_desc[] = {
  * in the menu - but we still have to bind them
  * to *something*, otherwise the keys will be
  * ignored (great design there...) */
-static input_bind_t input_binds[] = {
+static const input_bind_t input_binds_pad[] = {
 	[RETRO_DEVICE_ID_JOYPAD_B]      = { "AUX4",       K_AUX4,       "" }, /* Menu Cancel */
 	[RETRO_DEVICE_ID_JOYPAD_Y]      = { "AUX2",       K_AUX2,       "weapnext" },
 	[RETRO_DEVICE_ID_JOYPAD_SELECT] = { "SELECT",     K_ENTER,      "help" },
-	[RETRO_DEVICE_ID_JOYPAD_START]  = { 0 },
+	[RETRO_DEVICE_ID_JOYPAD_START]  = { "START",      K_ESCAPE,     "" }, /* Menu Show */
 	[RETRO_DEVICE_ID_JOYPAD_UP]     = { "UPARROW",    K_UPARROW,    "invprev" },
 	[RETRO_DEVICE_ID_JOYPAD_DOWN]   = { "DOWNARROW",  K_DOWNARROW,  "invnext" },
 	[RETRO_DEVICE_ID_JOYPAD_LEFT]   = { "LEFTARROW",  K_LEFTARROW,  "inven" },
@@ -215,7 +219,307 @@ static input_bind_t input_binds[] = {
 	[RETRO_DEVICE_ID_JOYPAD_L3]     = { 0 },
 	[RETRO_DEVICE_ID_JOYPAD_R3]     = { "AUX8",       K_AUX8,       "invdrop" },
 };
-#define INPUT_BINDS_LEN (sizeof(input_binds) / sizeof(input_binds[0]))
+#define INPUT_BINDS_PAD_LEN (sizeof(input_binds_pad) / sizeof(input_binds_pad[0]))
+
+enum input_kb_key_type
+{
+   KB_KEY_UP = 0,
+   KB_KEY_DOWN,
+   KB_KEY_LEFT,
+   KB_KEY_RIGHT,
+   KB_KEY_MENU_SHOW,
+   KB_KEY_MENU_SELECT,
+   KB_KEY_MENU_CANCEL,
+   KB_KEY_HELP,
+   KB_KEY_INVENTORY_SHOW,
+   KB_KEY_INVENTORY_PREV,
+   KB_KEY_INVENTORY_NEXT,
+   KB_KEY_INVENTORY_USE,
+   KB_KEY_INVENTORY_DROP,
+   KB_KEY_WEAPON_NEXT,
+   KB_KEY_RUN,
+   KB_KEY_JUMP,
+   KB_KEY_CROUCH,
+   KB_KEY_LAST
+};
+
+static unsigned input_kb_map[KB_KEY_LAST] = {0};
+
+typedef struct {
+	char *key;
+   enum input_kb_key_type type;
+   unsigned default_id;
+} input_kb_map_option_t;
+
+static const input_kb_map_option_t input_kb_map_options[] = {
+   { "vitaquakeii_kb_map_up",             KB_KEY_UP,             RETROK_w },
+   { "vitaquakeii_kb_map_down",           KB_KEY_DOWN,           RETROK_s },
+   { "vitaquakeii_kb_map_left",           KB_KEY_LEFT,           RETROK_a },
+   { "vitaquakeii_kb_map_right",          KB_KEY_RIGHT,          RETROK_d },
+   { "vitaquakeii_kb_map_menu_show",      KB_KEY_MENU_SHOW,      RETROK_ESCAPE },
+   { "vitaquakeii_kb_map_menu_select",    KB_KEY_MENU_SELECT,    RETROK_RETURN },
+   { "vitaquakeii_kb_map_menu_cancel",    KB_KEY_MENU_CANCEL,    RETROK_BACKSPACE },
+   { "vitaquakeii_kb_map_menu_help",      KB_KEY_HELP,           RETROK_F1 },
+   { "vitaquakeii_kb_map_inventory_show", KB_KEY_INVENTORY_SHOW, RETROK_TAB },
+   { "vitaquakeii_kb_map_inventory_prev", KB_KEY_INVENTORY_PREV, RETROK_q },
+   { "vitaquakeii_kb_map_inventory_next", KB_KEY_INVENTORY_NEXT, RETROK_e },
+   { "vitaquakeii_kb_map_inventory_use",  KB_KEY_INVENTORY_USE,  RETROK_r },
+   { "vitaquakeii_kb_map_inventory_drop", KB_KEY_INVENTORY_DROP, RETROK_v },
+   { "vitaquakeii_kb_map_weapon_next",    KB_KEY_WEAPON_NEXT,    RETROK_f },
+   { "vitaquakeii_kb_map_run",            KB_KEY_RUN,            RETROK_LSHIFT },
+   { "vitaquakeii_kb_map_jump",           KB_KEY_JUMP,           RETROK_SPACE },
+   { "vitaquakeii_kb_map_crouch",         KB_KEY_CROUCH,         RETROK_LCTRL },
+};
+#define INPUT_KB_MAP_OPTIONS_LEN (sizeof(input_kb_map_options) / sizeof(input_kb_map_options[0]))
+
+typedef struct {
+   unsigned id;
+   char *id_str;
+   char *name;
+} input_kb_key_t;
+
+#define INPUT_KB_KEYS_ENTRY(id, name) { id, #id, name }
+
+static const input_kb_key_t input_kb_keys[] = {
+   INPUT_KB_KEYS_ENTRY(RETROK_BACKSPACE,    "Backspace"),
+   INPUT_KB_KEYS_ENTRY(RETROK_TAB,          "Tab"),
+   INPUT_KB_KEYS_ENTRY(RETROK_CLEAR,        "Clear"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RETURN,       "Return"),
+   INPUT_KB_KEYS_ENTRY(RETROK_PAUSE,        "Pause"),
+   INPUT_KB_KEYS_ENTRY(RETROK_ESCAPE,       "Esc"),
+   INPUT_KB_KEYS_ENTRY(RETROK_SPACE,        "Space"),
+   INPUT_KB_KEYS_ENTRY(RETROK_HASH,         "#"),
+   INPUT_KB_KEYS_ENTRY(RETROK_QUOTE,        "'"),
+   INPUT_KB_KEYS_ENTRY(RETROK_COMMA,        ","),
+   INPUT_KB_KEYS_ENTRY(RETROK_MINUS,        "-"),
+   INPUT_KB_KEYS_ENTRY(RETROK_PERIOD,       "."),
+   INPUT_KB_KEYS_ENTRY(RETROK_SLASH,        "/"),
+   INPUT_KB_KEYS_ENTRY(RETROK_0,            "0"),
+   INPUT_KB_KEYS_ENTRY(RETROK_1,            "1"),
+   INPUT_KB_KEYS_ENTRY(RETROK_2,            "2"),
+   INPUT_KB_KEYS_ENTRY(RETROK_3,            "3"),
+   INPUT_KB_KEYS_ENTRY(RETROK_4,            "4"),
+   INPUT_KB_KEYS_ENTRY(RETROK_5,            "5"),
+   INPUT_KB_KEYS_ENTRY(RETROK_6,            "6"),
+   INPUT_KB_KEYS_ENTRY(RETROK_7,            "7"),
+   INPUT_KB_KEYS_ENTRY(RETROK_8,            "8"),
+   INPUT_KB_KEYS_ENTRY(RETROK_9,            "9"),
+   INPUT_KB_KEYS_ENTRY(RETROK_SEMICOLON,    ";"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LESS,         "<"),
+   INPUT_KB_KEYS_ENTRY(RETROK_EQUALS,       "="),
+   INPUT_KB_KEYS_ENTRY(RETROK_GREATER,      ">"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LEFTBRACKET,  "["),
+   INPUT_KB_KEYS_ENTRY(RETROK_BACKSLASH,    "\\"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RIGHTBRACKET, "]"),
+   INPUT_KB_KEYS_ENTRY(RETROK_BACKQUOTE,    "`"),
+   INPUT_KB_KEYS_ENTRY(RETROK_a,            "a"),
+   INPUT_KB_KEYS_ENTRY(RETROK_b,            "b"),
+   INPUT_KB_KEYS_ENTRY(RETROK_c,            "c"),
+   INPUT_KB_KEYS_ENTRY(RETROK_d,            "d"),
+   INPUT_KB_KEYS_ENTRY(RETROK_e,            "e"),
+   INPUT_KB_KEYS_ENTRY(RETROK_f,            "f"),
+   INPUT_KB_KEYS_ENTRY(RETROK_g,            "g"),
+   INPUT_KB_KEYS_ENTRY(RETROK_h,            "h"),
+   INPUT_KB_KEYS_ENTRY(RETROK_i,            "i"),
+   INPUT_KB_KEYS_ENTRY(RETROK_j,            "j"),
+   INPUT_KB_KEYS_ENTRY(RETROK_k,            "k"),
+   INPUT_KB_KEYS_ENTRY(RETROK_l,            "l"),
+   INPUT_KB_KEYS_ENTRY(RETROK_m,            "m"),
+   INPUT_KB_KEYS_ENTRY(RETROK_n,            "n"),
+   INPUT_KB_KEYS_ENTRY(RETROK_o,            "o"),
+   INPUT_KB_KEYS_ENTRY(RETROK_p,            "p"),
+   INPUT_KB_KEYS_ENTRY(RETROK_q,            "q"),
+   INPUT_KB_KEYS_ENTRY(RETROK_r,            "r"),
+   INPUT_KB_KEYS_ENTRY(RETROK_s,            "s"),
+   INPUT_KB_KEYS_ENTRY(RETROK_t,            "t"),
+   INPUT_KB_KEYS_ENTRY(RETROK_u,            "u"),
+   INPUT_KB_KEYS_ENTRY(RETROK_v,            "v"),
+   INPUT_KB_KEYS_ENTRY(RETROK_w,            "w"),
+   INPUT_KB_KEYS_ENTRY(RETROK_x,            "x"),
+   INPUT_KB_KEYS_ENTRY(RETROK_y,            "y"),
+   INPUT_KB_KEYS_ENTRY(RETROK_z,            "z"),
+   INPUT_KB_KEYS_ENTRY(RETROK_DELETE,       "Delete"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP0,          "Keypad 0"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP1,          "Keypad 1"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP2,          "Keypad 2"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP3,          "Keypad 3"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP4,          "Keypad 4"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP5,          "Keypad 5"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP6,          "Keypad 6"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP7,          "Keypad 7"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP8,          "Keypad 8"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP9,          "Keypad 9"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_PERIOD,    "Keypad ."),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_DIVIDE,    "Keypad /"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_MULTIPLY,  "Keypad *"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_MINUS,     "Keypad -"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_PLUS,      "Keypad +"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_ENTER,     "Keypad Enter"),
+   INPUT_KB_KEYS_ENTRY(RETROK_KP_EQUALS,    "Keypad ="),
+   INPUT_KB_KEYS_ENTRY(RETROK_UP,           "Cursor Up"),
+   INPUT_KB_KEYS_ENTRY(RETROK_DOWN,         "Cursor Down"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RIGHT,        "Cursor Right"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LEFT,         "Cursor Left"),
+   INPUT_KB_KEYS_ENTRY(RETROK_INSERT,       "Insert"),
+   INPUT_KB_KEYS_ENTRY(RETROK_HOME,         "Home"),
+   INPUT_KB_KEYS_ENTRY(RETROK_END,          "End"),
+   INPUT_KB_KEYS_ENTRY(RETROK_PAGEUP,       "PgUp"),
+   INPUT_KB_KEYS_ENTRY(RETROK_PAGEDOWN,     "PgDn"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F1,           "F1"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F2,           "F2"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F3,           "F3"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F4,           "F4"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F5,           "F5"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F6,           "F6"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F7,           "F7"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F8,           "F8"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F9,           "F9"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F10,          "F10"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F11,          "F11"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F12,          "F12"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F13,          "F13"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F14,          "F14"),
+   INPUT_KB_KEYS_ENTRY(RETROK_F15,          "F15"),
+   INPUT_KB_KEYS_ENTRY(RETROK_NUMLOCK,      "Num Lock"),
+   INPUT_KB_KEYS_ENTRY(RETROK_CAPSLOCK,     "Caps Lock"),
+   INPUT_KB_KEYS_ENTRY(RETROK_SCROLLOCK,    "Scroll Lock"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LSHIFT,       "Left Shift"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RSHIFT,       "Right Shift"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LCTRL,        "Left Ctrl"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RCTRL,        "Right Ctrl"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LALT,         "Left Alt"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RALT,         "Right Alt"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LMETA,        "Left Meta"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RMETA,        "Right Meta"),
+   INPUT_KB_KEYS_ENTRY(RETROK_LSUPER,       "Left Super"),
+   INPUT_KB_KEYS_ENTRY(RETROK_RSUPER,       "Right Super"),
+};
+#define INPUT_KB_KEYS_LEN (sizeof(input_kb_keys) / sizeof(input_kb_keys[0]))
+
+static const input_kb_key_t **input_kb_keys_hash_map = NULL;
+
+static const input_bind_t input_binds_kb[] = {
+   [KB_KEY_UP]             = { "UPARROW",    K_UPARROW,    "+forward" },
+   [KB_KEY_DOWN]           = { "DOWNARROW",  K_DOWNARROW,  "+back" },
+   [KB_KEY_LEFT]           = { "LEFTARROW",  K_LEFTARROW,  "+moveleft" },
+   [KB_KEY_RIGHT]          = { "RIGHTARROW", K_RIGHTARROW, "+moveright" },
+   [KB_KEY_MENU_SHOW]      = { "START",      K_ESCAPE,     "" },
+   [KB_KEY_MENU_SELECT]    = { "AUX1",       K_AUX1,       "" },
+   [KB_KEY_MENU_CANCEL]    = { "AUX4",       K_AUX4,       "" },
+   [KB_KEY_HELP]           = { "SELECT",     K_ENTER,      "help" },
+   [KB_KEY_INVENTORY_SHOW] = { "AUX2",       K_AUX2,       "inven" },
+   [KB_KEY_INVENTORY_PREV] = { "AUX3",       K_AUX3,       "invprev" },
+   [KB_KEY_INVENTORY_NEXT] = { "AUX5",       K_AUX5,       "invnext" },
+   [KB_KEY_INVENTORY_USE]  = { "AUX6",       K_AUX6,       "invuse" },
+   [KB_KEY_INVENTORY_DROP] = { "AUX7",       K_AUX7,       "invdrop" },
+   [KB_KEY_WEAPON_NEXT]    = { "AUX8",       K_AUX8,       "weapnext" },
+   [KB_KEY_RUN]            = { "AUX9",       K_AUX9,       "+speed" },
+   [KB_KEY_JUMP]           = { "AUX10",      K_AUX10,      "+moveup" },
+   [KB_KEY_CROUCH]         = { "AUX11",      K_AUX11,      "+movedown" },
+   /* Note: Attack is mapped to the left mouse button,
+    * not the keyboard, but we still have to bind the
+    * attack command and this is the most sensible
+    * place to do it... */
+   [KB_KEY_LAST]           = { "AUX12",      K_AUX12,      "+attack" },
+};
+#define INPUT_BINDS_KB_LEN (sizeof(input_binds_kb) / sizeof(input_binds_kb[0]))
+
+static void initialise_kb_mapping_opts(void)
+{
+   size_t opt_idx;
+   size_t opt_val_idx;
+
+   /* Populate 'vitaquakeii_kb_map' entries
+    * in libretro_core_options.h 'option_defs_us'
+    * array */
+   for (opt_idx = 0; opt_idx < INPUT_KB_MAP_OPTIONS_LEN; opt_idx++)
+   {
+      const char *key     = input_kb_map_options[opt_idx].key;
+      unsigned default_id = input_kb_map_options[opt_idx].default_id;
+      struct retro_core_option_v2_definition *opt_def;
+
+      /* Find current option */
+      for (opt_def = option_defs_us; opt_def->key; opt_def++)
+      {
+         if (!string_is_equal(opt_def->key, key))
+            continue;
+
+         /* We have a match
+          * > Populate option values */
+         for (opt_val_idx = 0; opt_val_idx < INPUT_KB_KEYS_LEN; opt_val_idx++)
+         {
+            opt_def->values[opt_val_idx].value = input_kb_keys[opt_val_idx].id_str;
+            opt_def->values[opt_val_idx].label = input_kb_keys[opt_val_idx].name;
+
+            /* Set default value */
+            if (default_id == input_kb_keys[opt_val_idx].id)
+               opt_def->default_value = input_kb_keys[opt_val_idx].id_str;
+         }
+         opt_def->values[INPUT_KB_KEYS_LEN].value = NULL;
+         opt_def->values[INPUT_KB_KEYS_LEN].label = NULL;
+
+         break;
+      }
+   }
+}
+
+static void update_kb_mapping(void)
+{
+   struct retro_variable var;
+   size_t opt_idx;
+
+   for (opt_idx = 0; opt_idx < INPUT_KB_MAP_OPTIONS_LEN; opt_idx++)
+   {
+      const char *key             = input_kb_map_options[opt_idx].key;
+      enum input_kb_key_type type = input_kb_map_options[opt_idx].type;
+      unsigned default_id         = input_kb_map_options[opt_idx].default_id;
+
+      input_kb_map[type] = default_id;
+      var.key            = key;
+      var.value          = NULL;
+
+      if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value)
+      {
+         const input_kb_key_t *input_kb_key = RHMAP_GET_STR(input_kb_keys_hash_map, var.value);
+         if (input_kb_key)
+            input_kb_map[type] = input_kb_key->id;
+      }
+   }
+}
+
+static void set_input_binds(void)
+{
+   const input_bind_t *input_binds;
+   size_t input_binds_len;
+   char buf[100];
+   size_t i;
+
+   if (quake_input_device == RETRO_DEVICE_KEYBOARD)
+   {
+      input_binds     = input_binds_kb;
+      input_binds_len = INPUT_BINDS_KB_LEN;
+   }
+   else
+   {
+      input_binds     = input_binds_pad;
+      input_binds_len = INPUT_BINDS_PAD_LEN;
+   }
+
+   Cbuf_AddText("unbindall\n");
+
+   for (i = 0; i < input_binds_len; i++)
+   {
+      if (!input_binds[i].keyname)
+         continue;
+
+      snprintf(buf, sizeof(buf),
+            "bind %s \"%s\"\n",
+            input_binds[i].keyname,
+            input_binds[i].command);
+
+      Cbuf_AddText(buf);
+   }
+}
 
 static bool context_needs_reinit = true;
 
@@ -678,24 +982,6 @@ void utf2ascii(char* dst, uint16_t* src){
 
 void Sys_DefaultConfig(void)
 {
-   char buf[100];
-   unsigned i;
-
-	Cbuf_AddText("unbindall\n");
-
-   for (i = 0; i < INPUT_BINDS_LEN; i++)
-   {
-		if (!input_binds[i].keyname)
-			continue;
-
-      snprintf(buf, sizeof(buf),
-				"bind %s \"%s\"\n",
-				input_binds[i].keyname,
-				input_binds[i].command);
-
-      Cbuf_AddText (buf);
-   }
-
 	Cbuf_AddText ("lookstrafe \"1.000000\"\n");
 	Cbuf_AddText ("lookspring \"0.000000\"\n");
 }
@@ -706,7 +992,51 @@ void Sys_SetKeys(uint32_t keys, uint32_t state){
 	Key_Event(keys, state, Sys_Milliseconds());
 }
 
-#define SET_BOUND_KEY(ret, id) Sys_SetKeys(input_binds[id].keynum, (ret & (1 << id)) ? 1 : 0)
+void retro_set_controller_port_device(unsigned port, unsigned device)
+{
+   struct retro_core_option_display option_display;
+   size_t opt_idx;
+
+   if (port > 0)
+      return;
+
+   switch (device)
+   {
+      case RETRO_DEVICE_JOYPAD:
+         quake_input_device = RETRO_DEVICE_JOYPAD;
+         break;
+      case RETRO_DEVICE_KEYBOARD:
+         quake_input_device = RETRO_DEVICE_KEYBOARD;
+         break;
+      default:
+         if (log_cb)
+				log_cb(RETRO_LOG_INFO,
+                  "Invalid libretro controller device, using default: RETRO_DEVICE_JOYPAD\n");
+         quake_input_device = RETRO_DEVICE_JOYPAD;
+         break;
+   }
+
+   /* Update internal input binds */
+   if (!first_boot)
+      set_input_binds();
+
+   /* Show/hide keyboard mapping options */
+   option_display.visible = (quake_input_device ==
+         RETRO_DEVICE_KEYBOARD);
+
+   for (opt_idx = 0; opt_idx < INPUT_KB_MAP_OPTIONS_LEN; opt_idx++)
+   {
+      option_display.key = input_kb_map_options[opt_idx].key;
+      environ_cb(RETRO_ENVIRONMENT_SET_CORE_OPTIONS_DISPLAY,
+            &option_display);
+   }
+}
+
+#define SET_BOUND_KEY_PAD(ret, id) Sys_SetKeys(input_binds_pad[id].keynum, (ret & (1 << id)) ? 1 : 0)
+
+#define SET_BOUND_KEY_KB(id)              \
+   Sys_SetKeys(input_binds_kb[id].keynum, \
+         input_cb(0, RETRO_DEVICE_KEYBOARD, 0, input_kb_map[id]) ? 1 : 0)
 
 void Sys_SendKeyEvents (void)
 {
@@ -720,65 +1050,94 @@ void Sys_SendKeyEvents (void)
 	if (!input_cb)
 		return;
 
-	if (libretro_supports_bitmasks)
-		ret = input_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
-	else
-	{
-		unsigned i;
-		for (i = RETRO_DEVICE_ID_JOYPAD_B; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
-		{
-			if (input_cb(0, RETRO_DEVICE_JOYPAD, 0, i))
-				ret |= (1 << i);
-		}
-	}
+   if (quake_input_device == RETRO_DEVICE_KEYBOARD)
+   {
+      /* Keyboard input */
+      SET_BOUND_KEY_KB(KB_KEY_UP);
+      SET_BOUND_KEY_KB(KB_KEY_DOWN);
+      SET_BOUND_KEY_KB(KB_KEY_LEFT);
+      SET_BOUND_KEY_KB(KB_KEY_RIGHT);
+      SET_BOUND_KEY_KB(KB_KEY_MENU_SHOW);
+      SET_BOUND_KEY_KB(KB_KEY_MENU_SELECT);
+      SET_BOUND_KEY_KB(KB_KEY_MENU_CANCEL);
+      SET_BOUND_KEY_KB(KB_KEY_HELP);
+      SET_BOUND_KEY_KB(KB_KEY_INVENTORY_SHOW);
+      SET_BOUND_KEY_KB(KB_KEY_INVENTORY_PREV);
+      SET_BOUND_KEY_KB(KB_KEY_INVENTORY_NEXT);
+      SET_BOUND_KEY_KB(KB_KEY_INVENTORY_USE);
+      SET_BOUND_KEY_KB(KB_KEY_INVENTORY_DROP);
+      SET_BOUND_KEY_KB(KB_KEY_WEAPON_NEXT);
+      SET_BOUND_KEY_KB(KB_KEY_RUN);
+      SET_BOUND_KEY_KB(KB_KEY_JUMP);
+      SET_BOUND_KEY_KB(KB_KEY_CROUCH);
 
-	/* Open Inventory */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_LEFT);
+      /* Mouse input */
+      Sys_SetKeys(input_binds_kb[KB_KEY_LAST].keynum,
+            input_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT) ?
+                  1 : 0);
+   }
+   else
+   {
+      if (libretro_supports_bitmasks)
+         ret = input_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_MASK);
+      else
+      {
+         unsigned i;
+         for (i = RETRO_DEVICE_ID_JOYPAD_B; i <= RETRO_DEVICE_ID_JOYPAD_R3; i++)
+         {
+            if (input_cb(0, RETRO_DEVICE_JOYPAD, 0, i))
+               ret |= (1 << i);
+         }
+      }
 
-	/* Inventory Previous */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_UP);
+      /* Open Inventory */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_LEFT);
 
-	/* Inventory Next */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_DOWN);
+      /* Inventory Previous */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_UP);
 
-	/* Use Inventory Item */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+      /* Inventory Next */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_DOWN);
 
-	/* Next Weapon */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_Y);
+      /* Use Inventory Item */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_RIGHT);
 
-	/* Run */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_L);
+      /* Next Weapon */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_Y);
 
-	/* Crouch / Descend */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_R);
+      /* Run */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_L);
 
-	/* Jump / Climb */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_L2);
+      /* Crouch / Descend */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_R);
 
-	/* Attack */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_R2);
+      /* Jump / Climb */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_L2);
 
-	/* Drop Inventory Item */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_R3);
+      /* Attack */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_R2);
 
-	/* Show / Hide Help Computer */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_SELECT);
+      /* Drop Inventory Item */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_R3);
 
-	/* Note: Menu open/cancel/select keys are
-	 * arbitrarily hard-coded
-	 * > Show Menu: K_ESCAPE
-	 * > Cancel: K_AUX4
-	 * > Select: K_AUX1 */
+      /* Show / Hide Help Computer */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_SELECT);
 
-	/* Show Menu */
-	Sys_SetKeys(K_ESCAPE, (ret & (1 << RETRO_DEVICE_ID_JOYPAD_START)) ? 1 : 0);
+      /* Note: Menu open/cancel/select keys are
+       * arbitrarily hard-coded
+       * > Show Menu: K_ESCAPE
+       * > Cancel: K_AUX4
+       * > Select: K_AUX1 */
 
-	/* Menu Cancel */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_B);
+      /* Show Menu */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_START);
 
-	/* Menu Select */
-	SET_BOUND_KEY(ret, RETRO_DEVICE_ID_JOYPAD_A);
+      /* Menu Cancel */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_B);
+
+      /* Menu Select */
+      SET_BOUND_KEY_PAD(ret, RETRO_DEVICE_ID_JOYPAD_A);
+   }
 
 	sys_frame_time = Sys_Milliseconds();
 }
@@ -1558,14 +1917,22 @@ static void update_variables(bool startup)
 				Cvar_SetValue( "cin_force43", 1 );
 		}
 	}
+
+   update_kb_mapping();
 }
 
 void retro_init(void)
 {
-	shutdown_core = false;
+   size_t i;
+
+   shutdown_core = false;
 
    if (environ_cb(RETRO_ENVIRONMENT_GET_INPUT_BITMASKS, NULL))
       libretro_supports_bitmasks = true;
+
+   /* Build keyboard key hash map */
+   for (i = 0; i < INPUT_KB_KEYS_LEN; i++)
+      RHMAP_SET_STR(input_kb_keys_hash_map, input_kb_keys[i].id_str, &input_kb_keys[i]);
 }
 
 void retro_deinit(void)
@@ -1580,15 +1947,13 @@ void retro_deinit(void)
 	CDAudio_Shutdown();
 
    libretro_supports_bitmasks = false;
+
+   RHMAP_FREE(input_kb_keys_hash_map);
 }
 
 unsigned retro_api_version(void)
 {
    return RETRO_API_VERSION;
-}
-
-void retro_set_controller_port_device(unsigned port, unsigned device)
-{
 }
 
 void retro_get_system_info(struct retro_system_info *info)
@@ -1618,8 +1983,18 @@ void retro_set_environment(retro_environment_t cb)
    struct retro_log_callback log;
    struct retro_vfs_interface_info vfs_iface_info;
 
+   static const struct retro_controller_description port_1[] = {
+      { "Analog Gamepad",   RETRO_DEVICE_JOYPAD },
+      { "Keyboard + Mouse", RETRO_DEVICE_KEYBOARD },
+   };
+   static const struct retro_controller_info ports[] = {
+      { port_1, 2 },
+      { 0 },
+   };
+
    environ_cb = cb;
 
+   initialise_kb_mapping_opts();
    libretro_set_core_options(environ_cb,
          &option_categories_supported);
 
@@ -1636,6 +2011,8 @@ void retro_set_environment(retro_environment_t cb)
       filestream_vfs_init(&vfs_iface_info);
       dirent_vfs_init(&vfs_iface_info);
 	}
+
+   environ_cb(RETRO_ENVIRONMENT_SET_CONTROLLER_INFO, (void*)ports);
 }
 
 void retro_reset(void)
@@ -1834,8 +2211,6 @@ bool retro_load_game(const struct retro_game_info *info)
 	return true;
 }
 
-bool first_boot = true;
-
 void retro_run(void)
 {
 	bool updated = false;
@@ -1869,6 +2244,7 @@ void retro_run(void)
 		Qcommon_Init(argc, (char**)argv);
 		if (is_soft_render) Cvar_Set( "vid_ref", "soft" );
 		update_variables(false);
+		set_input_binds();
 		first_boot = false;
 	}
 	
@@ -2512,96 +2888,128 @@ void IN_StopRumble (void)
 
 void IN_Move (usercmd_t *cmd)
 {
-   int lsx, lsy, rsx, rsy;
-   float speed;
-   
-   if ((in_speed.state & 1) ^ (int)cl_run->value)
-       speed = 2.0f;
+   if (quake_input_device == RETRO_DEVICE_KEYBOARD)
+   {
+      int mx, my;
+      float mx_delta;
+      float my_delta;
+      static int mx_prev = 0;
+      static int my_prev = 0;
+
+      /* Mouse look */
+      mx = input_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+      my = input_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+
+      mx_delta = 0.03f * ((float)sensitivity->value *
+            ((float)mx + (float)mx_prev) * 0.5f) /
+                  ((float)framerate / 60.0f);
+      my_delta = 0.03f * ((float)sensitivity->value *
+            ((float)my + (float)my_prev) * 0.5f) /
+                  ((float)framerate / 60.0f);
+
+      if (enable_opengl && gl_xflip->value)
+         cl.viewangles[YAW] += mx_delta;
+      else
+         cl.viewangles[YAW] -= mx_delta;
+
+      cl.viewangles[PITCH] += my_delta;
+
+      mx_prev = mx;
+      my_prev = my;
+   }
    else
-       speed = 1.0f;
-   
-	/* Left stick move */
-	lsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-			RETRO_DEVICE_ID_ANALOG_X);
-	lsy = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
-			RETRO_DEVICE_ID_ANALOG_Y);
+   {
+      float speed;
+      int lsx, lsy, rsx, rsy;
 
-	if (lsx > analog_deadzone || lsx < -analog_deadzone)
-	{
-		float lx_delta;
+      if ((in_speed.state & 1) ^ (int)cl_run->value)
+         speed = 2.0f;
+      else
+         speed = 1.0f;
 
-		if (lsx > analog_deadzone)
-			lsx = lsx - analog_deadzone;
-		if (lsx < -analog_deadzone)
-			lsx = lsx + analog_deadzone;
+      /* Left stick move */
+      lsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
+            RETRO_DEVICE_ID_ANALOG_X);
+      lsy = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_LEFT,
+            RETRO_DEVICE_ID_ANALOG_Y);
 
-		lx_delta = (speed * (float)cl_sidespeed->value * (float)lsx) /
-				(float)(ANALOG_RANGE - analog_deadzone);
+      if (lsx > analog_deadzone || lsx < -analog_deadzone)
+      {
+         float lx_delta;
 
-		if (enable_opengl && gl_xflip->value)
-			cmd->sidemove -= lx_delta;
-		else
-			cmd->sidemove += lx_delta;
-	}
+         if (lsx > analog_deadzone)
+            lsx = lsx - analog_deadzone;
+         if (lsx < -analog_deadzone)
+            lsx = lsx + analog_deadzone;
 
-	if (lsy > analog_deadzone || lsy < -analog_deadzone)
-	{
-		if (lsy > analog_deadzone)
-			lsy = lsy - analog_deadzone;
-		if (lsy < -analog_deadzone)
-			lsy = lsy + analog_deadzone;
+         lx_delta = (speed * (float)cl_sidespeed->value * (float)lsx) /
+               (float)(ANALOG_RANGE - analog_deadzone);
 
-		cmd->forwardmove -= (speed * (float)cl_forwardspeed->value * (float)lsy) /
-				(float)(ANALOG_RANGE - analog_deadzone);
-	}
+         if (enable_opengl && gl_xflip->value)
+            cmd->sidemove -= lx_delta;
+         else
+            cmd->sidemove += lx_delta;
+      }
 
-	/* Right stick Look */
-	rsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-				RETRO_DEVICE_ID_ANALOG_X);
-	rsy = invert_y_axis * input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
-				RETRO_DEVICE_ID_ANALOG_Y);
+      if (lsy > analog_deadzone || lsy < -analog_deadzone)
+      {
+         if (lsy > analog_deadzone)
+            lsy = lsy - analog_deadzone;
+         if (lsy < -analog_deadzone)
+            lsy = lsy + analog_deadzone;
 
-	if (rsx > analog_deadzone || rsx < -analog_deadzone)
-	{
-		float rx_delta;
+         cmd->forwardmove -= (speed * (float)cl_forwardspeed->value * (float)lsy) /
+               (float)(ANALOG_RANGE - analog_deadzone);
+      }
 
-		if (rsx > analog_deadzone)
-			rsx = rsx - analog_deadzone;
-		if (rsx < -analog_deadzone)
-			rsx = rsx + analog_deadzone;
+      /* Right stick Look */
+      rsx = input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
+               RETRO_DEVICE_ID_ANALOG_X);
+      rsy = invert_y_axis * input_cb(0, RETRO_DEVICE_ANALOG, RETRO_DEVICE_INDEX_ANALOG_RIGHT,
+               RETRO_DEVICE_ID_ANALOG_Y);
 
-		/* For now we are sharing the sensitivity with the mouse setting */
-		rx_delta = ((float)sensitivity->value * (float)rsx /
-				(float)(ANALOG_RANGE - analog_deadzone)) /
-						((float)framerate / 60.0f);
+      if (rsx > analog_deadzone || rsx < -analog_deadzone)
+      {
+         float rx_delta;
 
-		if (enable_opengl && gl_xflip->value)
-			cl.viewangles[YAW] += rx_delta;
-		else
-			cl.viewangles[YAW] -= rx_delta;
-	}
+         if (rsx > analog_deadzone)
+            rsx = rsx - analog_deadzone;
+         if (rsx < -analog_deadzone)
+            rsx = rsx + analog_deadzone;
 
-	if (rsy > analog_deadzone || rsy < -analog_deadzone)
-	{
-		/* Have to correct for widescreen aspect ratios,
-		 * otherwise vertical motion is too fast */
-		float aspect_correction = (float)(4 * viddef.height) /
-				(float)(3 * viddef.width);
+         /* For now we are sharing the sensitivity with the mouse setting */
+         rx_delta = ((float)sensitivity->value * (float)rsx /
+               (float)(ANALOG_RANGE - analog_deadzone)) /
+                     ((float)framerate / 60.0f);
 
-		if (rsy > analog_deadzone)
-			rsy = rsy - analog_deadzone;
-		if (rsy < -analog_deadzone)
-			rsy = rsy + analog_deadzone;
+         if (enable_opengl && gl_xflip->value)
+            cl.viewangles[YAW] += rx_delta;
+         else
+            cl.viewangles[YAW] -= rx_delta;
+      }
 
-		cl.viewangles[PITCH] -= (aspect_correction * (float)sensitivity->value * (float)rsy /
-				(float)(ANALOG_RANGE - analog_deadzone)) /
-						((float)framerate / 60.0f);
-	}
+      if (rsy > analog_deadzone || rsy < -analog_deadzone)
+      {
+         /* Have to correct for widescreen aspect ratios,
+          * otherwise vertical motion is too fast */
+         float aspect_correction = (float)(4 * viddef.height) /
+               (float)(3 * viddef.width);
 
-	if (cl.viewangles[PITCH] > 80)
-		cl.viewangles[PITCH] = 80;
-	if (cl.viewangles[PITCH] < -70)
-		cl.viewangles[PITCH] = -70;
+         if (rsy > analog_deadzone)
+            rsy = rsy - analog_deadzone;
+         if (rsy < -analog_deadzone)
+            rsy = rsy + analog_deadzone;
+
+         cl.viewangles[PITCH] -= (aspect_correction * (float)sensitivity->value * (float)rsy /
+               (float)(ANALOG_RANGE - analog_deadzone)) /
+                     ((float)framerate / 60.0f);
+      }
+   }
+
+   if (cl.viewangles[PITCH] > 80)
+      cl.viewangles[PITCH] = 80;
+   if (cl.viewangles[PITCH] < -70)
+      cl.viewangles[PITCH] = -70;
 }
 
 void IN_Activate (qboolean active)
