@@ -53,7 +53,7 @@ struct retro_core_option_v2_category option_cats_us[] = {
    {
       "input",
       "Input",
-      "Configure auto run, Y axis inversion, camera sensitivity, analog deadzone and rumble settings."
+      "Configure auto run, Y axis inversion, camera sensitivity, analog deadzone, rumble settings and keyboard mapping."
    },
    { NULL, NULL, NULL },
 };
@@ -528,7 +528,7 @@ struct retro_core_option_v2_definition option_defs_us[] = {
       "vitaquakeii_mouse_sensitivity",
       "Camera Sensitivity",
       NULL,
-      "Set the base speed of camera movements when using the gamepad's right analog stick.",
+      "Set the base speed of camera movements when using the gamepad's right analog stick or the mouse.",
       NULL,
       "input",
       {
@@ -598,6 +598,210 @@ struct retro_core_option_v2_definition option_defs_us[] = {
          { NULL, NULL },
       },
       "disabled"
+   },
+   {
+      "vitaquakeii_kb_map_up",
+      "Keyboard Mapping: Forwards/Menu Up",
+      NULL,
+      "Set key used to move forwards and navigate upwards in menus when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_down",
+      "Keyboard Mapping: Backwards/Menu Down",
+      NULL,
+      "Set key used to move backwards and navigate downwards in menus when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_left",
+      "Keyboard Mapping: Strafe Left",
+      NULL,
+      "Set key used to strafe left when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_right",
+      "Keyboard Mapping: Strafe Right",
+      NULL,
+      "Set key used to strafe right when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_menu_show",
+      "Keyboard Mapping: Show Menu",
+      NULL,
+      "Set key used to open the menu when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_menu_select",
+      "Keyboard Mapping: Menu Select",
+      NULL,
+      "Set key used to select menu items when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_menu_cancel",
+      "Keyboard Mapping: Menu Cancel",
+      NULL,
+      "Set key used to cancel menu selections when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_menu_help",
+      "Keyboard Mapping: Show/Hide Help Computer",
+      NULL,
+      "Set key used to open and close the 'help computer' when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_inventory_show",
+      "Keyboard Mapping: Open/Close Inventory",
+      NULL,
+      "Set key used to open and close the inventory when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_inventory_prev",
+      "Keyboard Mapping: Previous Inventory Item",
+      NULL,
+      "Set key used to select the previous inventory item when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_inventory_next",
+      "Keyboard Mapping: Next Inventory Item",
+      NULL,
+      "Set key used to select the next inventory item when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_inventory_use",
+      "Keyboard Mapping: Use Inventory Item",
+      NULL,
+      "Set key used to activate current inventory item when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_inventory_drop",
+      "Keyboard Mapping: Drop Inventory Item",
+      NULL,
+      "Set key used to drop current inventory item when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_weapon_next",
+      "Keyboard Mapping: Next Weapon",
+      NULL,
+      "Set key used to switch to the next available weapon when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_run",
+      "Keyboard Mapping: Run",
+      NULL,
+      "Set key used to enable running when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_jump",
+      "Keyboard Mapping: Jump/Climb",
+      NULL,
+      "Set key used to jump and climb/ascend when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
+   },
+   {
+      "vitaquakeii_kb_map_crouch",
+      "Keyboard Mapping: Crouch/Descend",
+      NULL,
+      "Set key used to crouch and descend when input device type is 'Keyboard + Mouse'.",
+      NULL,
+      "input",
+      {
+         { NULL, NULL },
+      },
+      NULL
    },
    { NULL, NULL, NULL, NULL, NULL, NULL, {{0}}, NULL },
 };
