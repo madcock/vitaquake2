@@ -270,7 +270,7 @@ libretro-build-linux-i686-rogue:
 # MacOS 64-bit
 libretro-build-osx-x64-rogue:
   extends:
-    - .libretro-osx-x64-make-default
+    - .libretro-osx-x64-make-10-7
     - .core-defs-rogue
 
 # MacOS ARM 64-bit
@@ -400,7 +400,7 @@ libretro-build-linux-i686-xatrix:
 # MacOS 64-bit
 libretro-build-osx-x64-xatrix:
   extends:
-    - .libretro-osx-x64-make-default
+    - .libretro-osx-x64-make-10-7
     - .core-defs-xatrix
 
 # MacOS ARM 64-bit
@@ -530,7 +530,7 @@ libretro-build-linux-i686-zaero:
 # MacOS 64-bit
 libretro-build-osx-x64-zaero:
   extends:
-    - .libretro-osx-x64-make-default
+    - .libretro-osx-x64-make-10-7
     - .core-defs-zaero
 
 # MacOS ARM 64-bit
