@@ -61,7 +61,7 @@ ifeq ($(STATIC_LINKING), 1)
 EXT := a
 endif
 
-ifeq ($(platform), unix)
+ifneq (,$(findstring unix,$(platform)))
 	EXT ?= so
    TARGET := $(TARGET_NAME)_libretro.$(EXT)
    fpic := -fPIC
@@ -284,7 +284,7 @@ else ifeq ($(basegame),zaero)
 CFLAGS   += -DZAERO
 endif
 
-ifeq ($(platform), unix)
+ifneq (,$(findstring unix,$(platform)))
 CFLAGS += -std=gnu99
 else
 CFLAGS += -std=c99
