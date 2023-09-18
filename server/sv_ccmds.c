@@ -355,7 +355,7 @@ void SV_WriteServerFile (qboolean autosave)
 {
 	RFILE	*f;
 	cvar_t	*var;
-	char	name[MAX_OSPATH], string[128];
+	char	fname[MAX_OSPATH], name[128], string[128];
 	char	comment[32];
 	time_t	aclock;
 	struct tm	*newtime;
@@ -366,11 +366,11 @@ void SV_WriteServerFile (qboolean autosave)
 
 	Com_DPrintf("SV_WriteServerFile(%s)\n", autosave ? "true" : "false");
 
-	Com_sprintf (name, sizeof(name), "%s/save/current/server.ssv", savedir);
-	f = rfopen (name, "wb");
+	Com_sprintf (fname, sizeof(fname), "%s/save/current/server.ssv", savedir);
+	f = rfopen (fname, "wb");
 	if (!f)
 	{
-		Com_Printf ("Couldn't write %s\n", name);
+		Com_Printf ("Couldn't write %s\n", fname);
 		return;
 	}
 	// write the comment field
@@ -431,7 +431,7 @@ SV_ReadServerFile
 void SV_ReadServerFile (void)
 {
 	RFILE	*f;
-	char	name[MAX_OSPATH], string[128];
+	char	fname[MAX_OSPATH], name[128], string[128];
 	char	comment[32];
 	char	mapcmd[MAX_TOKEN_CHARS];
 	char  *savedir = g_save_dir;
@@ -441,11 +441,11 @@ void SV_ReadServerFile (void)
 
 	Com_DPrintf("SV_ReadServerFile()\n");
 
-	Com_sprintf (name, sizeof(name), "%s/save/current/server.ssv", savedir);
-	f = rfopen (name, "rb");
+	Com_sprintf (fname, sizeof(fname), "%s/save/current/server.ssv", savedir);
+	f = rfopen (fname, "rb");
 	if (!f)
 	{
-		Com_Printf ("Couldn't read %s\n", name);
+		Com_Printf ("Couldn't read %s\n", fname);
 		return;
 	}
 	// read the comment field
