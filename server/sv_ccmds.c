@@ -431,10 +431,12 @@ SV_ReadServerFile
 void SV_ReadServerFile (void)
 {
 	RFILE	*f;
-	char	fname[MAX_OSPATH], name[128], string[128];
+	char	fname[MAX_OSPATH], name[4096], string[128];
 	char	comment[32];
 	char	mapcmd[MAX_TOKEN_CHARS];
 	char  *savedir = g_save_dir;
+	int readsize = sizeof(char) * 128;
+	int filesize;
 
 	if (g_save_dir[0] == '\0')
 		savedir = FS_Gamedir ();
@@ -448,6 +450,20 @@ void SV_ReadServerFile (void)
 		Com_Printf ("Couldn't read %s\n", fname);
 		return;
 	}
+
+	// figure out if this is a save from PR#45.  Subtract two first read fields
+	filesize = FS_filelength(f);
+	filesize = filesize - sizeof(comment) - sizeof(mapcmd);
+
+	// set readsize if divisible by two potential MAX_OSPATH sizes from PR#45 otherwise use 128
+#if defined(_XBOX1) || defined(_3DS) || defined(PSP) || defined(PS2) || defined(GEKKO)|| defined(WIIU) || defined(__PSL1GHT__) || defined(__PS3__)
+	if (filesize % (640 * sizeof(char)) == 0)		// 512 + 128
+		readsize = sizeof(char) * 512;
+#else
+	if (filesize % (4224 * sizeof(char)) == 0)	// 4096 +128
+		readsize = sizeof(char) * 4096;
+#endif
+
 	// read the comment field
 	FS_Read (comment, sizeof(comment), f);
 
@@ -458,7 +474,7 @@ void SV_ReadServerFile (void)
 	// these will be things like coop, skill, deathmatch, etc
 	while (1)
 	{
-		if (!rfread (name, 1, sizeof(name), f))
+		if (!rfread (name, 1, readsize, f))
 			break;
 		FS_Read (string, sizeof(string), f);
 		Com_DPrintf ("Set %s = %s\n", name, string);
