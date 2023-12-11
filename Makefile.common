@@ -20,6 +20,7 @@ ifeq ($(HAVE_CDAUDIO),1)
 	SYSTEM += $(LIBRETRO_DIR)/core_audio_mixer.c
 endif
 
+ifneq ($(STATIC_LINKING), 1)
 SYSTEM_COMM = \
       $(LIBRETRO_COMM_DIR)/compat/compat_posix_string.c \
       $(LIBRETRO_COMM_DIR)/compat/compat_snprintf.c \
@@ -36,6 +37,7 @@ SYSTEM_COMM = \
       $(LIBRETRO_COMM_DIR)/string/stdstring.c \
       $(LIBRETRO_COMM_DIR)/time/rtime.c \
       $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.c
+endif
 
 SYSTEM_COMM_AUDIO = \
 	$(LIBRETRO_COMM_DIR)/audio/conversion/float_to_s16.c \

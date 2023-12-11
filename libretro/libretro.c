@@ -1933,6 +1933,40 @@ void retro_init(void)
    /* Build keyboard key hash map */
    for (i = 0; i < INPUT_KB_KEYS_LEN; i++)
       RHMAP_SET_STR(input_kb_keys_hash_map, input_kb_keys[i].id_str, &input_kb_keys[i]);
+#if defined(SF2000)
+	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+
+	if (enable_opengl && !environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
+	{
+		if (log_cb)
+			log_cb(RETRO_LOG_INFO, "XRGB8888 is not supported.\n");
+		return false;
+	}
+
+	if (!enable_opengl
+#ifdef HAVE_OPENGL
+	    || !initialize_opengl()
+#endif
+	    )
+	{
+		if (log_cb)
+			log_cb(RETRO_LOG_INFO, "vitaQuakeII: using software renderer.\n");
+
+		fmt = RETRO_PIXEL_FORMAT_RGB565;
+		if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
+		{
+			if (log_cb)
+				log_cb(RETRO_LOG_INFO, "RGB565 is not supported.\n");
+			return false;
+		}
+		is_soft_render = true;
+	}
+	else
+	{
+		if (log_cb)
+			log_cb(RETRO_LOG_INFO, "vitaQuakeII: using OpenGL renderer.\n");
+	}
+#endif
 }
 
 void retro_deinit(void)
@@ -2068,7 +2102,9 @@ bool retro_load_game(const struct retro_game_info *info)
 	char parent_dir[1024];
 	bool use_external_savedir = false;
 	const char *base_save_dir = NULL;
+#if !defined(SF2000)
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+#endif
 
 #if defined(ROGUE)
 	const char *core_game_dir = "rogue";
@@ -2099,6 +2135,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
 	update_variables(true);
 
+#if !defined(SF2000)
 	if (enable_opengl && !environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
 	{
 		if (log_cb)
@@ -2129,6 +2166,7 @@ bool retro_load_game(const struct retro_game_info *info)
 		if (log_cb)
 			log_cb(RETRO_LOG_INFO, "vitaQuakeII: using OpenGL renderer.\n");
 	}
+#endif
 	
 	sprintf(path_lower, "%s", info->path);
 	
